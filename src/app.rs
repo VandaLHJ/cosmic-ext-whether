@@ -90,7 +90,7 @@ pub enum Message {
     SearchSubmit,
     SearchResults(Result<Vec<SearchResult>, String>),
     SelectLocation(usize),
-    LocationSelected(usize),
+
     AddLocation,
     RemoveLocation(usize),
     ToggleSource(usize),
@@ -330,17 +330,7 @@ impl cosmic::Application for AppModel {
                     return fetch_weather_task(&self.config);
                 }
             }
-            Message::LocationSelected(idx) => {
-                if idx < self.config.locations.len()
-                    && idx != self.config.active_location_index
-                {
-                    self.config.active_location_index = idx;
-                    self.forecast = None;
-                    self.fetch_state = FetchState::Loading;
-                    config::save_config(&self.config_handle, &self.config);
-                    return fetch_weather_task(&self.config);
-                }
-            }
+
             Message::AddLocation => {
                 self.page = Page::Locations;
                 self.search_results.clear();
@@ -706,16 +696,17 @@ impl AppModel {
             .padding(16)
             .width(Length::Fixed(340.0));
 
-        // --- Header: dropdown + add + refresh (always visible) ---
-        let dropdown = widget::dropdown(
-            &self.location_names,
-            Some(self.config.active_location_index),
-            Message::LocationSelected,
-        )
-        .width(Length::Fill);
+        // --- Header: location name heading + chevron + refresh ---
+        let location_name = self
+            .config
+            .locations
+            .get(self.config.active_location_index)
+            .map(|loc| loc.name.as_str())
+            .unwrap_or("Weather");
+        let heading = widget::text::title3(location_name).width(Length::Fill);
 
-        let add_btn = widget::button::icon(
-            widget::icon::from_name("list-add-symbolic").symbolic(true),
+        let chevron_btn = widget::button::icon(
+            widget::icon::from_name("go-next-symbolic").symbolic(true),
         )
         .on_press(Message::AddLocation);
 
@@ -725,7 +716,7 @@ impl AppModel {
         .on_press(Message::FetchWeather);
 
         let header_row =
-            cosmic::iced_widget::row![dropdown, add_btn, refresh_btn]
+            cosmic::iced_widget::row![heading, chevron_btn, refresh_btn]
                 .align_y(Alignment::Center)
                 .spacing(8);
         col = col.push(header_row);

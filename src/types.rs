@@ -145,7 +145,6 @@ pub struct DaySummary {
     pub name: String,
     pub high: Option<i32>,
     pub low: Option<i32>,
-    pub unit: String,
     pub short_forecast: String,
     pub is_daytime: bool,
 }
@@ -170,7 +169,6 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
                 name: period.name.clone(),
                 high: Some(period.temperature),
                 low,
-                unit: period.temperature_unit.clone(),
                 short_forecast: period.short_forecast.clone(),
                 is_daytime: true,
             });
@@ -181,7 +179,6 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
                 name: period.name.clone(),
                 high: None,
                 low: Some(period.temperature),
-                unit: period.temperature_unit.clone(),
                 short_forecast: period.short_forecast.clone(),
                 is_daytime: false,
             });

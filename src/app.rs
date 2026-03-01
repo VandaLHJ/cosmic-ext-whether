@@ -276,6 +276,9 @@ impl cosmic::Application for AppModel {
                 }
             }
             Message::SearchInput(input) => {
+                if input.is_empty() {
+                    self.search_results.clear();
+                }
                 self.search_input = input;
                 self.search_done = false;
             }
@@ -420,7 +423,6 @@ impl cosmic::Application for AppModel {
                         loc.cached_grid = None;
                         config::save_config(&self.config_handle, &self.config);
                         if idx == self.config.active_location_index {
-                            self.forecast = None;
                             self.fetch_state = FetchState::Loading;
                             return fetch_weather_task(&self.config);
                         }
@@ -610,7 +612,9 @@ impl AppModel {
 
         let search_label = fl!("search-button");
         let search_btn =
-            widget::button::suggested(search_label).on_press(Message::SearchSubmit);
+            widget::button::suggested(search_label).on_press_maybe(
+                if self.search_input.is_empty() { None } else { Some(Message::SearchSubmit) },
+            );
 
         let search_row = cosmic::iced_widget::row![search, search_btn]
             .spacing(8)
@@ -675,17 +679,9 @@ impl AppModel {
                 }
 
                 let is_active = i == self.config.active_location_index;
-                let indicator = if is_active { "●" } else { "○" };
-
-                let activate_btn = widget::button::text(
-                    format!("{indicator}  {}", loc.name),
-                )
-                .on_press_maybe(
-                    if is_active { None } else { Some(Message::ActivateLocation(i)) },
-                );
 
                 let source_label = loc.source.label();
-                let source_widget: Element<'_, Message> =
+                let source_line: Element<'_, Message> =
                     if WeatherSource::available_for(loc.country_code.as_deref()).len() > 1 {
                         widget::button::text(source_label)
                             .on_press(Message::ToggleSource(i))
@@ -694,15 +690,23 @@ impl AppModel {
                         widget::text::caption(source_label).into()
                     };
 
+                let label_col = cosmic::iced_widget::column![
+                    widget::text::body(loc.name.clone()),
+                    source_line,
+                ]
+                .spacing(2);
+
+                let selected = if is_active { Some(i) } else { None };
+                let location_radio = widget::radio(label_col, i, selected, Message::ActivateLocation)
+                    .width(Length::Fill);
+
                 let delete_btn = widget::button::icon(
                     widget::icon::from_name("edit-delete-symbolic").symbolic(true),
                 )
                 .on_press(Message::RemoveLocation(i));
 
                 let row = cosmic::iced_widget::row![
-                    activate_btn,
-                    widget::horizontal_space(),
-                    source_widget,
+                    location_radio,
                     delete_btn,
                 ]
                 .spacing(8)
@@ -724,7 +728,9 @@ impl AppModel {
 
         let search_label = fl!("search-button");
         let search_btn =
-            widget::button::suggested(search_label).on_press(Message::SearchSubmit);
+            widget::button::suggested(search_label).on_press_maybe(
+                if self.search_input.is_empty() { None } else { Some(Message::SearchSubmit) },
+            );
 
         let search_row = cosmic::iced_widget::row![search, search_btn]
             .spacing(8)
@@ -941,7 +947,7 @@ impl AppModel {
                     }
 
                     let scrollable = cosmic::iced_widget::scrollable(rows)
-                        .height(Length::Fixed(400.0));
+                        .height(Length::Fill);
                     col = col.push(scrollable);
                 }
             }

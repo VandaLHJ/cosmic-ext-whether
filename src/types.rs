@@ -23,6 +23,16 @@ impl WeatherSource {
             WeatherSource::OpenMeteo => WeatherSource::Nws,
         }
     }
+
+    /// Returns the list of weather sources valid for a given country code.
+    /// `None` (legacy/unknown) is treated as US to preserve migrated v3 locations.
+    pub fn available_for(country_code: Option<&str>) -> Vec<WeatherSource> {
+        match country_code {
+            Some("us") | None => vec![WeatherSource::Nws, WeatherSource::OpenMeteo],
+            _ => vec![WeatherSource::OpenMeteo],
+        }
+    }
+
 }
 
 /// Unified weather result from either NWS or Open-Meteo.
@@ -102,6 +112,8 @@ pub struct SavedLocation {
     pub cached_grid: Option<GridInfo>,
     #[serde(default)]
     pub source: WeatherSource,
+    #[serde(default)]
+    pub country_code: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

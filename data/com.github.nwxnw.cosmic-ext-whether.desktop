@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Whether
+Type=Application
+Exec=cosmic-ext-whether
+Terminal=false
+Categories=COSMIC;
+Icon=weather-clear-symbolic
+StartupNotify=true
+NoDisplay=true
+X-CosmicApplet=true
+X-CosmicHoverPopup=Auto

@@ -50,8 +50,8 @@ pub struct AppModel {
 
 fn build_tab_model() -> segmented_button::SingleSelectModel {
     segmented_button::Model::builder()
-        .insert(|b| b.text("Hourly").data(ForecastView::Hourly))
-        .insert(|b| b.text("Daily").data(ForecastView::Daily).activate())
+        .insert(|b| b.text(fl!("hourly-tab")).data(ForecastView::Hourly))
+        .insert(|b| b.text(fl!("daily-tab")).data(ForecastView::Daily).activate())
         .build()
 }
 
@@ -762,8 +762,8 @@ impl AppModel {
             .config
             .locations
             .get(self.config.active_location_index)
-            .map(|loc| loc.name.as_str())
-            .unwrap_or("Weather");
+            .map(|loc| loc.name.clone())
+            .unwrap_or_else(|| fl!("default-heading"));
         let heading = widget::text::title3(location_name).width(Length::Fill);
 
         let chevron_btn = widget::button::icon(

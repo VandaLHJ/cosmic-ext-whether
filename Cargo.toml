@@ -3,7 +3,7 @@ name = "cosmic-ext-whether"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-only"
-description = "COSMIC panel applet for US National Weather Service forecasts"
+description = "COSMIC panel applet for weather forecasts"
 repository = "https://github.com/nwxnw/cosmic-ext-whether"
 
 [dependencies]

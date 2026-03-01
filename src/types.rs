@@ -23,6 +23,16 @@ impl WeatherSource {
             WeatherSource::OpenMeteo => WeatherSource::Nws,
         }
     }
+
+    /// Returns the list of weather sources valid for a given country code.
+    /// `None` (legacy/unknown) is treated as US to preserve migrated v3 locations.
+    pub fn available_for(country_code: Option<&str>) -> Vec<WeatherSource> {
+        match country_code {
+            Some("us") | None => vec![WeatherSource::Nws, WeatherSource::OpenMeteo],
+            _ => vec![WeatherSource::OpenMeteo],
+        }
+    }
+
 }
 
 /// Unified weather result from either NWS or Open-Meteo.
@@ -102,6 +112,8 @@ pub struct SavedLocation {
     pub cached_grid: Option<GridInfo>,
     #[serde(default)]
     pub source: WeatherSource,
+    #[serde(default)]
+    pub country_code: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -133,7 +145,6 @@ pub struct DaySummary {
     pub name: String,
     pub high: Option<i32>,
     pub low: Option<i32>,
-    pub unit: String,
     pub short_forecast: String,
     pub is_daytime: bool,
 }
@@ -158,7 +169,6 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
                 name: period.name.clone(),
                 high: Some(period.temperature),
                 low,
-                unit: period.temperature_unit.clone(),
                 short_forecast: period.short_forecast.clone(),
                 is_daytime: true,
             });
@@ -169,7 +179,6 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
                 name: period.name.clone(),
                 high: None,
                 low: Some(period.temperature),
-                unit: period.temperature_unit.clone(),
                 short_forecast: period.short_forecast.clone(),
                 is_daytime: false,
             });

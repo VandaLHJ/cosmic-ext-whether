@@ -1,4 +1,4 @@
-app-title = Whether
+default-heading = Weather
 
 loading = Loading weather data...
 fetch-error = Could not fetch weather: {$error}
@@ -10,7 +10,6 @@ precip-info = Precipitation: {$chance}%
 
 hourly-tab = Hourly
 daily-tab = Daily
-hourly-coming-soon = Hourly forecast coming soon
 updated-ago = Updated {$minutes} min ago
 updated-now = Updated just now
 
@@ -22,6 +21,4 @@ no-results = No results found
 search-error = Search failed: {$error}
 
 manage-locations = Manage Locations
-add-location = Add Location
-remove-location = Remove
 no-saved-locations = No saved locations

@@ -50,8 +50,8 @@ pub struct AppModel {
 
 fn build_tab_model() -> segmented_button::SingleSelectModel {
     segmented_button::Model::builder()
-        .insert(|b| b.text("Hourly").data(ForecastView::Hourly))
-        .insert(|b| b.text("Daily").data(ForecastView::Daily).activate())
+        .insert(|b| b.text(fl!("hourly-tab")).data(ForecastView::Hourly))
+        .insert(|b| b.text(fl!("daily-tab")).data(ForecastView::Daily).activate())
         .build()
 }
 
@@ -90,11 +90,15 @@ pub enum Message {
     SearchSubmit,
     SearchResults(Result<Vec<SearchResult>, String>),
     SelectLocation(usize),
-    LocationSelected(usize),
+
+    SourceSelected,
+    ActivateLocation(usize),
+
     AddLocation,
     RemoveLocation(usize),
     ToggleSource(usize),
     BackToMain,
+    ToggleUnits,
     ConfigChanged(WhetherConfig),
 }
 
@@ -272,6 +276,9 @@ impl cosmic::Application for AppModel {
                 }
             }
             Message::SearchInput(input) => {
+                if input.is_empty() {
+                    self.search_results.clear();
+                }
                 self.search_input = input;
                 self.search_done = false;
             }
@@ -301,6 +308,10 @@ impl cosmic::Application for AppModel {
             }
             Message::SelectLocation(i) => {
                 if let Some(result) = self.search_results.get(i) {
+                    let country_code = result
+                        .address
+                        .as_ref()
+                        .and_then(|a| a.country_code.clone());
                     let source = if geocoding::is_us_location(result) {
                         WeatherSource::Nws
                     } else {
@@ -312,6 +323,7 @@ impl cosmic::Application for AppModel {
                         lon: result.lon.clone(),
                         cached_grid: None,
                         source,
+                        country_code,
                     };
                     self.config.locations.push(location);
                     self.config.active_location_index = self.config.locations.len() - 1;
@@ -330,14 +342,36 @@ impl cosmic::Application for AppModel {
                     return fetch_weather_task(&self.config);
                 }
             }
-            Message::LocationSelected(idx) => {
+
+            Message::SourceSelected => {
+                let loc_idx = self.config.active_location_index;
+                if let Some(loc) = self.config.locations.get_mut(loc_idx) {
+                    if WeatherSource::available_for(loc.country_code.as_deref()).len() > 1
+                    {
+                        loc.source = loc.source.toggle();
+                        loc.cached_grid = None;
+                        config::save_config(&self.config_handle, &self.config);
+                        // Keep old forecast visible while new data loads
+                        self.fetch_state = FetchState::Loading;
+                        return fetch_weather_task(&self.config);
+                    }
+                }
+            }
+            Message::ActivateLocation(idx) => {
                 if idx < self.config.locations.len()
                     && idx != self.config.active_location_index
                 {
                     self.config.active_location_index = idx;
+                    self.location_names = self
+                        .config
+                        .locations
+                        .iter()
+                        .map(|l| l.name.clone())
+                        .collect();
+                    config::save_config(&self.config_handle, &self.config);
+                    self.page = Page::Main;
                     self.forecast = None;
                     self.fetch_state = FetchState::Loading;
-                    config::save_config(&self.config_handle, &self.config);
                     return fetch_weather_task(&self.config);
                 }
             }
@@ -384,14 +418,23 @@ impl cosmic::Application for AppModel {
             }
             Message::ToggleSource(idx) => {
                 if let Some(loc) = self.config.locations.get_mut(idx) {
-                    loc.source = loc.source.toggle();
-                    loc.cached_grid = None;
-                    config::save_config(&self.config_handle, &self.config);
-                    if idx == self.config.active_location_index {
-                        self.forecast = None;
-                        self.fetch_state = FetchState::Loading;
-                        return fetch_weather_task(&self.config);
+                    if WeatherSource::available_for(loc.country_code.as_deref()).len() > 1 {
+                        loc.source = loc.source.toggle();
+                        loc.cached_grid = None;
+                        config::save_config(&self.config_handle, &self.config);
+                        if idx == self.config.active_location_index {
+                            self.fetch_state = FetchState::Loading;
+                            return fetch_weather_task(&self.config);
+                        }
                     }
+                }
+            }
+            Message::ToggleUnits => {
+                self.config.use_fahrenheit = !self.config.use_fahrenheit;
+                config::save_config(&self.config_handle, &self.config);
+                if self.config.active_location().is_some() {
+                    self.fetch_state = FetchState::Loading;
+                    return fetch_weather_task(&self.config);
                 }
             }
             Message::BackToMain => {
@@ -569,7 +612,9 @@ impl AppModel {
 
         let search_label = fl!("search-button");
         let search_btn =
-            widget::button::suggested(search_label).on_press(Message::SearchSubmit);
+            widget::button::suggested(search_label).on_press_maybe(
+                if self.search_input.is_empty() { None } else { Some(Message::SearchSubmit) },
+            );
 
         let search_row = cosmic::iced_widget::row![search, search_btn]
             .spacing(8)
@@ -634,14 +679,26 @@ impl AppModel {
                 }
 
                 let is_active = i == self.config.active_location_index;
-                let indicator = if is_active { "●" } else { "○" };
-                let indicator_text = widget::text::body(indicator);
-
-                let name_text = widget::text::body(loc.name.clone()).width(Length::Fill);
 
                 let source_label = loc.source.label();
-                let source_btn = widget::button::text(source_label)
-                    .on_press(Message::ToggleSource(i));
+                let source_line: Element<'_, Message> =
+                    if WeatherSource::available_for(loc.country_code.as_deref()).len() > 1 {
+                        widget::button::text(source_label)
+                            .on_press(Message::ToggleSource(i))
+                            .into()
+                    } else {
+                        widget::text::caption(source_label).into()
+                    };
+
+                let label_col = cosmic::iced_widget::column![
+                    widget::text::body(loc.name.clone()),
+                    source_line,
+                ]
+                .spacing(2);
+
+                let selected = if is_active { Some(i) } else { None };
+                let location_radio = widget::radio(label_col, i, selected, Message::ActivateLocation)
+                    .width(Length::Fill);
 
                 let delete_btn = widget::button::icon(
                     widget::icon::from_name("edit-delete-symbolic").symbolic(true),
@@ -649,9 +706,7 @@ impl AppModel {
                 .on_press(Message::RemoveLocation(i));
 
                 let row = cosmic::iced_widget::row![
-                    indicator_text,
-                    name_text,
-                    source_btn,
+                    location_radio,
                     delete_btn,
                 ]
                 .spacing(8)
@@ -673,7 +728,9 @@ impl AppModel {
 
         let search_label = fl!("search-button");
         let search_btn =
-            widget::button::suggested(search_label).on_press(Message::SearchSubmit);
+            widget::button::suggested(search_label).on_press_maybe(
+                if self.search_input.is_empty() { None } else { Some(Message::SearchSubmit) },
+            );
 
         let search_row = cosmic::iced_widget::row![search, search_btn]
             .spacing(8)
@@ -706,16 +763,17 @@ impl AppModel {
             .padding(16)
             .width(Length::Fixed(340.0));
 
-        // --- Header: dropdown + add + refresh (always visible) ---
-        let dropdown = widget::dropdown(
-            &self.location_names,
-            Some(self.config.active_location_index),
-            Message::LocationSelected,
-        )
-        .width(Length::Fill);
+        // --- Header: location name heading + chevron + refresh ---
+        let location_name = self
+            .config
+            .locations
+            .get(self.config.active_location_index)
+            .map(|loc| loc.name.clone())
+            .unwrap_or_else(|| fl!("default-heading"));
+        let heading = widget::text::title3(location_name).width(Length::Fill);
 
-        let add_btn = widget::button::icon(
-            widget::icon::from_name("list-add-symbolic").symbolic(true),
+        let chevron_btn = widget::button::icon(
+            widget::icon::from_name("go-next-symbolic").symbolic(true),
         )
         .on_press(Message::AddLocation);
 
@@ -725,7 +783,7 @@ impl AppModel {
         .on_press(Message::FetchWeather);
 
         let header_row =
-            cosmic::iced_widget::row![dropdown, add_btn, refresh_btn]
+            cosmic::iced_widget::row![heading, chevron_btn, refresh_btn]
                 .align_y(Alignment::Center)
                 .spacing(8);
         col = col.push(header_row);
@@ -758,9 +816,10 @@ impl AppModel {
 
                 let unit = &current.temperature_unit;
                 let temp_label = format!("{}°{unit}", current.temperature);
-                let temp_text = widget::text::title1(temp_label);
+                let temp_btn = widget::button::text(temp_label)
+                    .on_press(Message::ToggleUnits);
 
-                let icon_temp_row = cosmic::iced_widget::row![icon, temp_text]
+                let icon_temp_row = cosmic::iced_widget::row![icon, temp_btn]
                     .spacing(12)
                     .align_y(Alignment::Center);
 
@@ -888,7 +947,7 @@ impl AppModel {
                     }
 
                     let scrollable = cosmic::iced_widget::scrollable(rows)
-                        .height(Length::Fixed(400.0));
+                        .height(Length::Fill);
                     col = col.push(scrollable);
                 }
             }
@@ -902,13 +961,29 @@ impl AppModel {
                     let mins = elapsed.to_string();
                     fl!("updated-ago", minutes = mins.as_str())
                 };
-                let source_label = self
-                    .config
-                    .active_location()
-                    .map(|l| l.source.label())
-                    .unwrap_or("NWS");
-                let footer_text = format!("{time_text} · {source_label}");
-                col = col.push(widget::text::caption(footer_text));
+                let time_caption = widget::text::caption(format!("{time_text} ·"));
+
+                if let Some(loc) = self.config.active_location() {
+                    let available =
+                        WeatherSource::available_for(loc.country_code.as_deref());
+                    let source_element: Element<'_, Message> = if available.len() > 1 {
+                        widget::button::text(loc.source.label())
+                            .on_press(Message::SourceSelected)
+                            .into()
+                    } else {
+                        widget::text::caption(loc.source.label()).into()
+                    };
+
+                    let footer_row = cosmic::iced_widget::row![
+                        time_caption,
+                        source_element,
+                    ]
+                    .align_y(Alignment::Center)
+                    .spacing(4);
+                    col = col.push(footer_row);
+                } else {
+                    col = col.push(widget::text::caption(time_text));
+                }
             }
         } else if matches!(self.fetch_state, FetchState::Idle) {
             let text = fl!("no-location");

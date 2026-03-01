@@ -7,6 +7,7 @@ no-location = No location set
 
 wind-info = Wind: {$speed} {$direction}
 precip-info = Precipitation: {$chance}%
+humidity-info = Humidity: {$humidity}%
 
 hourly-tab = Hourly
 daily-tab = Daily
@@ -22,3 +23,5 @@ search-error = Search failed: {$error}
 
 manage-locations = Manage Locations
 no-saved-locations = No saved locations
+
+alerts-heading = Active Alerts

@@ -1,4 +1,4 @@
-use crate::types::{Forecast, ForecastPeriod, PrecipValue};
+use crate::types::{self, CurrentObservation, Forecast, ForecastPeriod, PrecipValue};
 
 const BASE_URL: &str = "https://api.open-meteo.com/v1/forecast";
 
@@ -27,6 +27,17 @@ struct OmResponse {
     utc_offset_seconds: i32,
     hourly: Option<OmHourly>,
     daily: Option<OmDaily>,
+    current: Option<OmCurrent>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct OmCurrent {
+    temperature_2m: Option<f64>,
+    weather_code: Option<u32>,
+    wind_speed_10m: Option<f64>,
+    wind_direction_10m: Option<f64>,
+    is_day: Option<u8>,
+    relative_humidity_2m: Option<f64>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -57,7 +68,7 @@ pub async fn fetch_weather(
     lon: String,
     location_name: String,
     use_fahrenheit: bool,
-) -> Result<Forecast, OpenMeteoError> {
+) -> Result<(Forecast, Option<CurrentObservation>), OpenMeteoError> {
     let temp_unit = if use_fahrenheit {
         "fahrenheit"
     } else {
@@ -85,6 +96,10 @@ pub async fn fetch_weather(
             (
                 "daily",
                 "weather_code,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_probability_max",
+            ),
+            (
+                "current",
+                "temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,is_day,relative_humidity_2m",
             ),
             ("forecast_days", "7"),
         ])
@@ -136,11 +151,33 @@ pub async fn fetch_weather(
         Vec::new()
     };
 
-    Ok(Forecast {
-        location_name,
-        periods,
-        hourly_periods,
-    })
+    // Build current observation from the `current` block
+    let observation = data.current.map(|cur| {
+        let condition = cur
+            .weather_code
+            .map(|code| wmo_code_description(code, cur.is_day.unwrap_or(1) == 1));
+        let wind_direction = cur.wind_direction_10m.map(types::degrees_to_cardinal);
+        let wind_speed = cur.wind_speed_10m.map(|s| format!("{:.0} {speed_unit}", s));
+
+        CurrentObservation {
+            temperature: cur.temperature_2m.map(|t| t.round() as i32),
+            temperature_unit: unit_str.to_string(),
+            condition,
+            wind_speed,
+            wind_direction,
+            humidity: cur.relative_humidity_2m.map(|h| h.round() as i32),
+            is_daytime: cur.is_day.unwrap_or(1) == 1,
+        }
+    });
+
+    Ok((
+        Forecast {
+            location_name,
+            periods,
+            hourly_periods,
+        },
+        observation,
+    ))
 }
 
 fn build_daily_periods(daily: &OmDaily, unit: &str, speed_unit: &str) -> Vec<ForecastPeriod> {
@@ -149,7 +186,7 @@ fn build_daily_periods(daily: &OmDaily, unit: &str, speed_unit: &str) -> Vec<For
     for i in 0..daily.time.len() {
         let day_name = date_to_day_name(&daily.time[i], i == 0);
         let description = wmo_code_description(daily.weather_code[i], true);
-        let wind_dir = degrees_to_cardinal(daily.wind_direction_10m_dominant[i]);
+        let wind_dir = types::degrees_to_cardinal(daily.wind_direction_10m_dominant[i]);
         let wind_speed = format!("{:.0} {speed_unit}", daily.wind_speed_10m_max[i]);
         let precip = daily
             .precipitation_probability_max
@@ -242,7 +279,7 @@ fn build_hourly_periods(
         };
         let is_day = hourly.is_day[i] == 1;
         let description = wmo_code_description(hourly.weather_code[i], is_day);
-        let wind_dir = degrees_to_cardinal(hourly.wind_direction_10m[i]);
+        let wind_dir = types::degrees_to_cardinal(hourly.wind_direction_10m[i]);
         let wind_speed = format!("{:.0} {speed_unit}", hourly.wind_speed_10m[i]);
         let precip = hourly
             .precipitation_probability
@@ -293,15 +330,6 @@ fn date_to_day_name(date_str: &str, is_first: bool) -> String {
     date_str.to_string()
 }
 
-/// Convert wind direction in degrees to a cardinal direction string.
-fn degrees_to_cardinal(degrees: f64) -> String {
-    const DIRECTIONS: &[&str] = &[
-        "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
-        "NW", "NNW",
-    ];
-    let idx = ((degrees + 11.25) / 22.5) as usize % 16;
-    DIRECTIONS[idx].to_string()
-}
 
 /// Map WMO weather interpretation codes to description strings.
 /// Descriptions are chosen so that `weather_icon_for_period()` in app.rs

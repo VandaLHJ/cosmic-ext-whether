@@ -12,8 +12,9 @@ use crate::geocoding;
 use crate::nws;
 use crate::open_meteo;
 use crate::types::{
-    format_hour, pair_daily_periods, short_location_name, FetchState, Forecast, ForecastPeriod,
-    SavedLocation, SearchResult, WeatherResult, WeatherSource,
+    condition_icon, format_hour, pair_daily_periods, short_location_name, CurrentObservation,
+    FetchState, Forecast, ForecastPeriod, SavedLocation, SearchResult, WeatherAlert, WeatherResult,
+    WeatherSource,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +36,7 @@ pub struct AppModel {
     config: WhetherConfig,
     config_handle: Option<cosmic::cosmic_config::Config>,
     forecast: Option<Forecast>,
+    observation: Option<CurrentObservation>,
     fetch_state: FetchState,
     page: Page,
     search_input: String,
@@ -46,6 +48,7 @@ pub struct AppModel {
     forecast_view: ForecastView,
     last_updated: Option<std::time::Instant>,
     location_names: Vec<String>,
+    alerts: Vec<WeatherAlert>,
 }
 
 fn build_tab_model() -> segmented_button::SingleSelectModel {
@@ -63,6 +66,7 @@ impl Default for AppModel {
             config: WhetherConfig::default(),
             config_handle: None,
             forecast: None,
+            observation: None,
             fetch_state: FetchState::Idle,
             page: Page::Setup,
             search_input: String::new(),
@@ -74,6 +78,7 @@ impl Default for AppModel {
             forecast_view: ForecastView::Daily,
             last_updated: None,
             location_names: Vec::new(),
+            alerts: Vec::new(),
         }
     }
 }
@@ -255,6 +260,8 @@ impl cosmic::Application for AppModel {
                     .map(|l| l.name.clone())
                     .collect();
 
+                self.alerts = result.alerts;
+                self.observation = result.observation;
                 self.forecast = Some(result.forecast);
                 config::save_config(&self.config_handle, &self.config);
             }
@@ -371,6 +378,8 @@ impl cosmic::Application for AppModel {
                     config::save_config(&self.config_handle, &self.config);
                     self.page = Page::Main;
                     self.forecast = None;
+                    self.observation = None;
+                    self.alerts.clear();
                     self.fetch_state = FetchState::Loading;
                     return fetch_weather_task(&self.config);
                 }
@@ -389,11 +398,15 @@ impl cosmic::Application for AppModel {
                     if self.config.locations.is_empty() {
                         self.config.active_location_index = 0;
                         self.forecast = None;
+                        self.observation = None;
+                        self.alerts.clear();
                         self.fetch_state = FetchState::Idle;
                         self.page = Page::Setup;
                     } else if idx == self.config.active_location_index {
                         self.config.active_location_index = 0;
                         self.forecast = None;
+                        self.observation = None;
+                        self.alerts.clear();
                         self.fetch_state = FetchState::Loading;
                         self.location_names = self
                             .config
@@ -502,9 +515,11 @@ fn fetch_weather_task(config: &WhetherConfig) -> Task<Message> {
                 |result| {
                     cosmic::Action::App(Message::WeatherFetched(
                         result
-                            .map(|(forecast, grid)| WeatherResult {
+                            .map(|(forecast, grid, alerts, observation)| WeatherResult {
                                 forecast,
                                 cached_grid: Some(grid),
+                                alerts,
+                                observation,
                             })
                             .map_err(|e| e.to_string()),
                     ))
@@ -515,9 +530,11 @@ fn fetch_weather_task(config: &WhetherConfig) -> Task<Message> {
                 |result| {
                     cosmic::Action::App(Message::WeatherFetched(
                         result
-                            .map(|forecast| WeatherResult {
+                            .map(|(forecast, observation)| WeatherResult {
                                 forecast,
                                 cached_grid: None,
+                                alerts: Vec::new(),
+                                observation,
                             })
                             .map_err(|e| e.to_string()),
                     ))
@@ -530,62 +547,17 @@ fn fetch_weather_task(config: &WhetherConfig) -> Task<Message> {
 }
 
 fn weather_icon_for_period(period: &ForecastPeriod) -> &'static str {
-    let s = period.short_forecast.to_lowercase();
-    let night = !period.is_daytime;
-
-    if s.contains("thunder") || s.contains("storm") {
-        return "weather-storm-symbolic";
-    }
-    if s.contains("snow") || s.contains("flurr") || s.contains("blizzard") {
-        return "weather-snow-symbolic";
-    }
-    if s.contains("rain") || s.contains("shower") || s.contains("drizzle") {
-        return if s.contains("scattered") {
-            "weather-showers-scattered-symbolic"
-        } else {
-            "weather-showers-symbolic"
-        };
-    }
-    if s.contains("fog") || s.contains("mist") || s.contains("haz") {
-        return "weather-fog-symbolic";
-    }
-    if s.contains("mostly cloudy") || s.contains("overcast") {
-        return "weather-overcast-symbolic";
-    }
-    if s.contains("partly") && s.contains("cloud") {
-        return if night {
-            "weather-few-clouds-night-symbolic"
-        } else {
-            "weather-few-clouds-symbolic"
-        };
-    }
-    if s.contains("mostly sunny") || s.contains("mostly clear") {
-        return if night {
-            "weather-few-clouds-night-symbolic"
-        } else {
-            "weather-few-clouds-symbolic"
-        };
-    }
-    if s.contains("sunny") || s.contains("clear") {
-        return if night {
-            "weather-clear-night-symbolic"
-        } else {
-            "weather-clear-symbolic"
-        };
-    }
-    if s.contains("cloud") {
-        return "weather-overcast-symbolic";
-    }
-
-    if night {
-        "weather-clear-night-symbolic"
-    } else {
-        "weather-clear-symbolic"
-    }
+    condition_icon(&period.short_forecast, period.is_daytime)
 }
 
 impl AppModel {
     fn current_temp_text(&self) -> Option<String> {
+        // Prefer observation temperature, fall back to first forecast period
+        if let Some(obs) = &self.observation {
+            if let Some(temp) = obs.temperature {
+                return Some(format!("{}°{}", temp, obs.temperature_unit));
+            }
+        }
         self.forecast.as_ref().and_then(|f| {
             f.periods.first().map(|p| {
                 let unit = if p.temperature_unit == "F" { "F" } else { "C" };
@@ -595,6 +567,15 @@ impl AppModel {
     }
 
     fn weather_icon_name(&self) -> &str {
+        if !self.alerts.is_empty() {
+            return "weather-severe-alert-symbolic";
+        }
+        // Prefer observation condition for panel icon
+        if let Some(obs) = &self.observation {
+            if let Some(ref cond) = obs.condition {
+                return condition_icon(cond, obs.is_daytime);
+            }
+        }
         self.forecast
             .as_ref()
             .and_then(|f| f.periods.first())
@@ -788,6 +769,31 @@ impl AppModel {
                 .spacing(8);
         col = col.push(header_row);
 
+        // Alert banner
+        if !self.alerts.is_empty() {
+            let alert_icon = widget::icon::from_name("weather-severe-alert-symbolic")
+                .symbolic(true)
+                .size(24);
+
+            let mut alert_col = cosmic::iced_widget::column![].spacing(4);
+            let heading_text = fl!("alerts-heading");
+            alert_col = alert_col.push(widget::text::body(heading_text));
+            for alert in &self.alerts {
+                alert_col = alert_col.push(widget::text::caption(alert.headline.clone()));
+            }
+
+            let alert_row = cosmic::iced_widget::row![alert_icon, alert_col]
+                .spacing(8)
+                .align_y(Alignment::Start)
+                .padding(12)
+                .width(Length::Fill);
+
+            let alert_banner = widget::layer_container(alert_row)
+                .layer(cosmic::cosmic_theme::Layer::Secondary)
+                .width(Length::Fill);
+            col = col.push(alert_banner);
+        }
+
         // Error / loading states
         match &self.fetch_state {
             FetchState::Loading if self.forecast.is_none() => {
@@ -809,13 +815,48 @@ impl AppModel {
         if let Some(forecast) = &self.forecast {
             // --- Hero section ---
             if let Some(current) = forecast.periods.first() {
-                let icon_name = weather_icon_for_period(current);
-                let icon = widget::icon::from_name(icon_name)
+                // Prefer observation data when available, fall back to forecast period
+                let (hero_temp, hero_unit, hero_condition, hero_icon_name, hero_wind, hero_humidity) =
+                    if let Some(obs) = &self.observation {
+                        let temp = obs.temperature.unwrap_or(current.temperature);
+                        let unit = &obs.temperature_unit;
+                        let cond = obs
+                            .condition
+                            .clone()
+                            .unwrap_or_else(|| current.short_forecast.clone());
+                        let icon = obs
+                            .condition
+                            .as_deref()
+                            .map(|c| condition_icon(c, obs.is_daytime))
+                            .unwrap_or_else(|| weather_icon_for_period(current));
+                        let wind = match (&obs.wind_speed, &obs.wind_direction) {
+                            (Some(speed), Some(dir)) => {
+                                Some(fl!("wind-info", speed = speed.as_str(), direction = dir.as_str()))
+                            }
+                            _ => None,
+                        };
+                        (temp, unit.clone(), cond, icon, wind, obs.humidity)
+                    } else {
+                        let wind = fl!(
+                            "wind-info",
+                            speed = current.wind_speed.as_str(),
+                            direction = current.wind_direction.as_str()
+                        );
+                        (
+                            current.temperature,
+                            current.temperature_unit.clone(),
+                            current.short_forecast.clone(),
+                            weather_icon_for_period(current),
+                            Some(wind),
+                            None,
+                        )
+                    };
+
+                let icon = widget::icon::from_name(hero_icon_name)
                     .symbolic(true)
                     .size(48);
 
-                let unit = &current.temperature_unit;
-                let temp_label = format!("{}°{unit}", current.temperature);
+                let temp_label = format!("{}°{hero_unit}", hero_temp);
                 let temp_btn = widget::button::text(temp_label)
                     .on_press(Message::ToggleUnits);
 
@@ -823,23 +864,24 @@ impl AppModel {
                     .spacing(12)
                     .align_y(Alignment::Center);
 
-                let forecast_text = widget::text::body(current.short_forecast.clone());
+                let forecast_text = widget::text::body(hero_condition);
 
-                // Wind + precip on one line
-                let wind = fl!(
-                    "wind-info",
-                    speed = current.wind_speed.as_str(),
-                    direction = current.wind_direction.as_str()
-                );
-                let detail_line = if let Some(precip) = &current.probability_of_precipitation {
+                // Detail line: join available items with ·
+                let mut details = Vec::new();
+                if let Some(wind) = hero_wind {
+                    details.push(wind);
+                }
+                // Precip from forecast period (observations don't carry this)
+                if let Some(precip) = &current.probability_of_precipitation {
                     let chance = precip.value.unwrap_or(0.0) as i32;
                     let chance_str = chance.to_string();
-                    let precip_text = fl!("precip-info", chance = chance_str.as_str());
-                    format!("{wind} · {precip_text}")
-                } else {
-                    wind
-                };
-                let detail_text = widget::text::body(detail_line);
+                    details.push(fl!("precip-info", chance = chance_str.as_str()));
+                }
+                if let Some(humidity) = hero_humidity {
+                    let h = humidity.to_string();
+                    details.push(fl!("humidity-info", humidity = h.as_str()));
+                }
+                let detail_text = widget::text::body(details.join(" · "));
 
                 let hero_content = cosmic::iced_widget::column![
                     icon_temp_row,
@@ -995,51 +1037,5 @@ impl AppModel {
 }
 
 fn forecast_icon_for_summary(day: &crate::types::DaySummary) -> &'static str {
-    let s = day.short_forecast.to_lowercase();
-
-    if s.contains("thunder") || s.contains("storm") {
-        return "weather-storm-symbolic";
-    }
-    if s.contains("snow") || s.contains("flurr") || s.contains("blizzard") {
-        return "weather-snow-symbolic";
-    }
-    if s.contains("rain") || s.contains("shower") || s.contains("drizzle") {
-        return if s.contains("scattered") {
-            "weather-showers-scattered-symbolic"
-        } else {
-            "weather-showers-symbolic"
-        };
-    }
-    if s.contains("fog") || s.contains("mist") || s.contains("haz") {
-        return "weather-fog-symbolic";
-    }
-    if s.contains("mostly cloudy") || s.contains("overcast") {
-        return "weather-overcast-symbolic";
-    }
-    if s.contains("partly") && s.contains("cloud") {
-        return if day.is_daytime {
-            "weather-few-clouds-symbolic"
-        } else {
-            "weather-few-clouds-night-symbolic"
-        };
-    }
-    if s.contains("mostly sunny") || s.contains("mostly clear") {
-        return if day.is_daytime {
-            "weather-few-clouds-symbolic"
-        } else {
-            "weather-few-clouds-night-symbolic"
-        };
-    }
-    if s.contains("sunny") || s.contains("clear") {
-        return if day.is_daytime {
-            "weather-clear-symbolic"
-        } else {
-            "weather-clear-night-symbolic"
-        };
-    }
-    if s.contains("cloud") {
-        return "weather-overcast-symbolic";
-    }
-
-    "weather-clear-symbolic"
+    condition_icon(&day.short_forecast, day.is_daytime)
 }

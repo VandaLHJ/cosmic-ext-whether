@@ -35,11 +35,61 @@ impl WeatherSource {
 
 }
 
+// --- Weather alert types ---
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AlertSeverity {
+    Extreme,
+    Severe,
+    Moderate,
+    Minor,
+    Unknown,
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct WeatherAlert {
+    pub event: String,
+    pub headline: String,
+    pub severity: AlertSeverity,
+}
+
+#[derive(Deserialize)]
+pub struct AlertsResponse {
+    pub features: Vec<AlertFeature>,
+}
+
+#[derive(Deserialize)]
+pub struct AlertFeature {
+    pub properties: AlertProperties,
+}
+
+#[derive(Deserialize)]
+pub struct AlertProperties {
+    pub event: String,
+    pub headline: Option<String>,
+    pub severity: String,
+}
+
 /// Unified weather result from either NWS or Open-Meteo.
 #[derive(Debug, Clone)]
 pub struct WeatherResult {
     pub forecast: Forecast,
     pub cached_grid: Option<GridInfo>,
+    pub alerts: Vec<WeatherAlert>,
+    pub observation: Option<CurrentObservation>,
+}
+
+/// Real-time observation data from the nearest station (NWS) or current block (Open-Meteo).
+#[derive(Debug, Clone)]
+pub struct CurrentObservation {
+    pub temperature: Option<i32>,
+    pub temperature_unit: String,
+    pub condition: Option<String>,
+    pub wind_speed: Option<String>,
+    pub wind_direction: Option<String>,
+    pub humidity: Option<i32>,
+    pub is_daytime: bool,
 }
 
 // --- NWS API response types ---
@@ -101,6 +151,45 @@ pub struct PrecipValue {
     pub value: Option<f64>,
 }
 
+// --- NWS station / observation types ---
+
+#[derive(Deserialize)]
+pub struct StationsResponse {
+    pub features: Vec<StationFeature>,
+}
+
+#[derive(Deserialize)]
+pub struct StationFeature {
+    pub properties: StationProperties,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StationProperties {
+    pub station_identifier: String,
+}
+
+#[derive(Deserialize)]
+pub struct ObservationResponse {
+    pub properties: ObservationProperties,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ObservationProperties {
+    pub temperature: Option<QuantitativeValue>,
+    pub wind_speed: Option<QuantitativeValue>,
+    pub wind_direction: Option<QuantitativeValue>,
+    pub relative_humidity: Option<QuantitativeValue>,
+    pub text_description: Option<String>,
+    pub timestamp: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct QuantitativeValue {
+    pub value: Option<f64>,
+}
+
 // --- App domain types ---
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -121,6 +210,8 @@ pub struct GridInfo {
     pub office: String,
     pub grid_x: u32,
     pub grid_y: u32,
+    #[serde(default)]
+    pub nearest_station: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -222,6 +313,72 @@ pub struct SearchResult {
 pub struct NominatimAddress {
     #[serde(default)]
     pub country_code: Option<String>,
+}
+
+/// Convert wind direction in degrees to a cardinal direction string.
+pub fn degrees_to_cardinal(degrees: f64) -> String {
+    const DIRECTIONS: &[&str] = &[
+        "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
+        "NW", "NNW",
+    ];
+    let idx = ((degrees + 11.25) / 22.5) as usize % 16;
+    DIRECTIONS[idx].to_string()
+}
+
+/// Map a weather condition string and day/night flag to a symbolic icon name.
+pub fn condition_icon(condition: &str, is_daytime: bool) -> &'static str {
+    let s = condition.to_lowercase();
+    let night = !is_daytime;
+
+    if s.contains("thunder") || s.contains("storm") {
+        return "weather-storm-symbolic";
+    }
+    if s.contains("snow") || s.contains("flurr") || s.contains("blizzard") {
+        return "weather-snow-symbolic";
+    }
+    if s.contains("rain") || s.contains("shower") || s.contains("drizzle") {
+        return if s.contains("scattered") {
+            "weather-showers-scattered-symbolic"
+        } else {
+            "weather-showers-symbolic"
+        };
+    }
+    if s.contains("fog") || s.contains("mist") || s.contains("haz") {
+        return "weather-fog-symbolic";
+    }
+    if s.contains("mostly cloudy") || s.contains("overcast") {
+        return "weather-overcast-symbolic";
+    }
+    if s.contains("partly") && s.contains("cloud") {
+        return if night {
+            "weather-few-clouds-night-symbolic"
+        } else {
+            "weather-few-clouds-symbolic"
+        };
+    }
+    if s.contains("mostly sunny") || s.contains("mostly clear") {
+        return if night {
+            "weather-few-clouds-night-symbolic"
+        } else {
+            "weather-few-clouds-symbolic"
+        };
+    }
+    if s.contains("sunny") || s.contains("clear") {
+        return if night {
+            "weather-clear-night-symbolic"
+        } else {
+            "weather-clear-symbolic"
+        };
+    }
+    if s.contains("cloud") {
+        return "weather-overcast-symbolic";
+    }
+
+    if night {
+        "weather-clear-night-symbolic"
+    } else {
+        "weather-clear-symbolic"
+    }
 }
 
 /// Extract a short "City, State" name from a Nominatim display_name.

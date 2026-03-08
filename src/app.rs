@@ -3,7 +3,7 @@ use cosmic::iced::window::Id;
 use cosmic::iced::{Alignment, Length, Rectangle, Subscription};
 use cosmic::iced_runtime::core::window;
 use cosmic::surface::action::{app_popup, destroy_popup};
-use cosmic::widget::{self, segmented_button};
+use cosmic::widget;
 use cosmic::Element;
 
 use crate::config::{self, APP_ID, WhetherConfig};
@@ -24,12 +24,6 @@ pub enum Page {
     Locations,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ForecastView {
-    Hourly,
-    Daily,
-}
-
 pub struct AppModel {
     core: Core,
     popup: Option<Id>,
@@ -44,19 +38,15 @@ pub struct AppModel {
     searching: bool,
     search_error: Option<String>,
     search_done: bool,
-    tab_model: segmented_button::SingleSelectModel,
-    forecast_view: ForecastView,
+    hourly_offset: usize,
+    expanded_day: Option<usize>,
     last_updated: Option<std::time::Instant>,
     location_names: Vec<String>,
     alerts: Vec<WeatherAlert>,
 }
 
-fn build_tab_model() -> segmented_button::SingleSelectModel {
-    segmented_button::Model::builder()
-        .insert(|b| b.text(fl!("hourly-tab")).data(ForecastView::Hourly))
-        .insert(|b| b.text(fl!("daily-tab")).data(ForecastView::Daily).activate())
-        .build()
-}
+/// Number of hourly columns visible at once between the arrow buttons.
+const HOURLY_PAGE_SIZE: usize = 6;
 
 impl Default for AppModel {
     fn default() -> Self {
@@ -74,8 +64,8 @@ impl Default for AppModel {
             searching: false,
             search_error: None,
             search_done: false,
-            tab_model: build_tab_model(),
-            forecast_view: ForecastView::Daily,
+            hourly_offset: 0,
+            expanded_day: None,
             last_updated: None,
             location_names: Vec::new(),
             alerts: Vec::new(),
@@ -90,7 +80,6 @@ pub enum Message {
     FetchWeather,
     WeatherFetched(Result<WeatherResult, String>),
     Tick(()),
-    TabSelected(segmented_button::Entity),
     SearchInput(String),
     SearchSubmit,
     SearchResults(Result<Vec<SearchResult>, String>),
@@ -104,6 +93,9 @@ pub enum Message {
     ToggleSource(usize),
     BackToMain,
     ToggleUnits,
+    HourlyPrev,
+    HourlyNext,
+    ToggleDay(usize),
     ConfigChanged(WhetherConfig),
 }
 
@@ -262,6 +254,8 @@ impl cosmic::Application for AppModel {
 
                 self.alerts = result.alerts;
                 self.observation = result.observation;
+                self.hourly_offset = 0;
+                self.expanded_day = None;
                 self.forecast = Some(result.forecast);
                 config::save_config(&self.config_handle, &self.config);
             }
@@ -274,12 +268,6 @@ impl cosmic::Application for AppModel {
                 {
                     self.fetch_state = FetchState::Loading;
                     return fetch_weather_task(&self.config);
-                }
-            }
-            Message::TabSelected(entity) => {
-                self.tab_model.activate(entity);
-                if let Some(&view) = self.tab_model.active_data::<ForecastView>() {
-                    self.forecast_view = view;
                 }
             }
             Message::SearchInput(input) => {
@@ -440,6 +428,25 @@ impl cosmic::Application for AppModel {
                             return fetch_weather_task(&self.config);
                         }
                     }
+                }
+            }
+            Message::HourlyPrev => {
+                self.hourly_offset = self.hourly_offset.saturating_sub(HOURLY_PAGE_SIZE);
+            }
+            Message::HourlyNext => {
+                let total = self
+                    .forecast
+                    .as_ref()
+                    .map(|f| f.hourly_periods.len())
+                    .unwrap_or(0);
+                let max_offset = total.saturating_sub(HOURLY_PAGE_SIZE);
+                self.hourly_offset = (self.hourly_offset + HOURLY_PAGE_SIZE).min(max_offset);
+            }
+            Message::ToggleDay(idx) => {
+                if self.expanded_day == Some(idx) {
+                    self.expanded_day = None;
+                } else {
+                    self.expanded_day = Some(idx);
                 }
             }
             Message::ToggleUnits => {
@@ -899,99 +906,166 @@ impl AppModel {
                 col = col.push(hero);
             }
 
-            // --- Segmented control: Hourly / Daily ---
-            let tabs = widget::segmented_control::horizontal(&self.tab_model)
-                .on_activate(Message::TabSelected)
-                .width(Length::Fill);
-            col = col.push(tabs);
+            // --- Hourly forecast (paged with arrow buttons) ---
+            if !forecast.hourly_periods.is_empty() {
+                let total = forecast.hourly_periods.len();
+                let offset = self.hourly_offset.min(total.saturating_sub(HOURLY_PAGE_SIZE));
+                let end = (offset + HOURLY_PAGE_SIZE).min(total);
+                let can_prev = offset > 0;
+                let can_next = end < total;
 
-            // --- Forecast content ---
-            match self.forecast_view {
-                ForecastView::Daily => {
-                    let summaries = pair_daily_periods(&forecast.periods);
-                    let mut rows = cosmic::iced_widget::column![].spacing(0);
-
-                    for (i, day) in summaries.iter().enumerate() {
-                        if i > 0 {
-                            rows = rows.push(widget::divider::horizontal::light());
-                        }
-
-                        let icon_name = forecast_icon_for_summary(day);
-                        let icon = widget::icon::from_name(icon_name)
+                let prev_arrow: Element<'_, Message> = if can_prev {
+                    widget::button::icon(
+                        widget::icon::from_name("go-previous-symbolic")
                             .symbolic(true)
-                            .size(24);
+                            .size(16),
+                    )
+                    .on_press(Message::HourlyPrev)
+                    .into()
+                } else {
+                    widget::Space::with_width(Length::Fixed(24.0)).into()
+                };
 
-                        let name_text =
-                            widget::text::body(day.name.clone()).width(Length::Fill);
-
-                        let temp_str = match (day.high, day.low) {
-                            (Some(h), Some(l)) => {
-                                format!("{}° / {}°", h, l)
-                            }
-                            (Some(h), None) => format!("{}°", h),
-                            (None, Some(l)) => format!("— / {}°", l),
-                            (None, None) => "—".to_string(),
-                        };
-                        let temp_text = widget::text::body(temp_str);
-
-                        let row = cosmic::iced_widget::row![icon, name_text, temp_text]
-                            .spacing(8)
-                            .align_y(Alignment::Center)
-                            .padding([6, 16, 6, 4]);
-
-                        rows = rows.push(row);
-                    }
-
-                    col = col.push(rows);
-                }
-                ForecastView::Hourly => {
-                    let mut rows = cosmic::iced_widget::column![].spacing(0);
-
-                    for (i, period) in forecast.hourly_periods.iter().enumerate() {
-                        if i > 0 {
-                            rows = rows.push(widget::divider::horizontal::light());
-                        }
-
-                        let icon_name = weather_icon_for_period(period);
-                        let icon = widget::icon::from_name(icon_name)
-                            .symbolic(true)
-                            .size(24);
-
-                        let hour_label = period
+                let mut hourly_row = cosmic::iced_widget::row![].spacing(0);
+                for i in offset..end {
+                    let period = &forecast.hourly_periods[i];
+                    let hour_label = if i == 0 {
+                        "Now".to_string()
+                    } else {
+                        period
                             .start_time
                             .as_deref()
                             .map(format_hour)
-                            .unwrap_or_default();
-                        let hour_text = widget::text::body(hour_label)
-                            .width(Length::Fixed(52.0));
+                            .unwrap_or_default()
+                    };
 
-                        let unit = &period.temperature_unit;
-                        let temp_str = format!("{}°{unit}", period.temperature);
-                        let temp_text = widget::text::body(temp_str)
-                            .width(Length::Fixed(52.0));
+                    let icon_name = weather_icon_for_period(period);
+                    let icon = widget::icon::from_name(icon_name)
+                        .symbolic(true)
+                        .size(24);
 
-                        let condition_text = widget::text::body(
-                            period.short_forecast.clone(),
-                        )
-                        .width(Length::Fill);
+                    let unit = &period.temperature_unit;
+                    let temp = widget::text::body(format!("{}°{}", period.temperature, unit));
 
-                        let row = cosmic::iced_widget::row![
-                            icon,
-                            hour_text,
-                            temp_text,
-                            condition_text,
-                        ]
-                        .spacing(8)
-                        .align_y(Alignment::Center)
-                        .padding([6, 16, 6, 4]);
+                    let hour_col = cosmic::iced_widget::column![
+                        widget::text::caption(hour_label),
+                        icon,
+                        temp,
+                    ]
+                    .spacing(4)
+                    .align_x(Alignment::Center)
+                    .width(Length::Fill);
 
-                        rows = rows.push(row);
+                    hourly_row = hourly_row.push(hour_col);
+                }
+
+                let next_arrow: Element<'_, Message> = if can_next {
+                    widget::button::icon(
+                        widget::icon::from_name("go-next-symbolic")
+                            .symbolic(true)
+                            .size(16),
+                    )
+                    .on_press(Message::HourlyNext)
+                    .into()
+                } else {
+                    widget::Space::with_width(Length::Fixed(24.0)).into()
+                };
+
+                let paged_row = cosmic::iced_widget::row![prev_arrow, hourly_row, next_arrow]
+                    .spacing(4)
+                    .align_y(Alignment::Center)
+                    .width(Length::Fill);
+                col = col.push(paged_row);
+            }
+
+            col = col.push(widget::divider::horizontal::default());
+
+            // --- Daily forecast (clickable rows with inline expansion) ---
+            {
+                let summaries = pair_daily_periods(&forecast.periods);
+                let mut rows = cosmic::iced_widget::column![].spacing(0);
+
+                for (i, day) in summaries.iter().enumerate() {
+                    if i > 0 {
+                        rows = rows.push(widget::divider::horizontal::light());
                     }
 
-                    let scrollable = cosmic::iced_widget::scrollable(rows)
-                        .height(Length::Fill);
-                    col = col.push(scrollable);
+                    let is_expanded = self.expanded_day == Some(i);
+
+                    let icon_name = forecast_icon_for_summary(day);
+                    let icon = widget::icon::from_name(icon_name)
+                        .symbolic(true)
+                        .size(24);
+
+                    let name_text =
+                        widget::text::body(day.name.clone()).width(Length::Fill);
+
+                    let temp_str = match (day.high, day.low) {
+                        (Some(h), Some(l)) => {
+                            format!("{}° / {}°", h, l)
+                        }
+                        (Some(h), None) => format!("{}°", h),
+                        (None, Some(l)) => format!("— / {}°", l),
+                        (None, None) => "—".to_string(),
+                    };
+                    let temp_text = widget::text::body(temp_str);
+
+                    let row_content =
+                        cosmic::iced_widget::row![icon, name_text, temp_text]
+                            .spacing(8)
+                            .align_y(Alignment::Center)
+                            .padding([6, 4]);
+
+                    let row_btn = widget::button::custom(row_content)
+                        .on_press(Message::ToggleDay(i))
+                        .width(Length::Fill)
+                        .class(cosmic::theme::Button::Text);
+
+                    rows = rows.push(row_btn);
+
+                    if is_expanded {
+                        let mut detail_col =
+                            cosmic::iced_widget::column![].spacing(4);
+
+                        let wind = fl!(
+                            "wind-info",
+                            speed = day.wind_speed.as_str(),
+                            direction = day.wind_direction.as_str()
+                        );
+                        detail_col =
+                            detail_col.push(widget::text::body(wind));
+
+                        if let Some(chance) = day.precip_chance {
+                            let chance_str = chance.to_string();
+                            let precip = fl!(
+                                "precip-info",
+                                chance = chance_str.as_str()
+                            );
+                            detail_col =
+                                detail_col.push(widget::text::body(precip));
+                        }
+
+                        if !day.detailed_forecast.is_empty()
+                            && day.detailed_forecast != day.short_forecast
+                        {
+                            detail_col = detail_col.push(
+                                widget::text::caption(
+                                    day.detailed_forecast.clone(),
+                                ),
+                            );
+                        }
+
+                        let detail = widget::layer_container(
+                            detail_col.padding([4, 16, 8, 36]),
+                        )
+                        .layer(cosmic::cosmic_theme::Layer::Secondary)
+                        .width(Length::Fill);
+
+                        rows = rows.push(detail);
+                    }
                 }
+
+                col = col.push(rows);
             }
 
             // --- Footer: "Updated X min ago · Source" ---

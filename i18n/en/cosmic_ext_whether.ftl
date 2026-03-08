@@ -9,8 +9,6 @@ wind-info = Wind: {$speed} {$direction}
 precip-info = Precipitation: {$chance}%
 humidity-info = Humidity: {$humidity}%
 
-hourly-tab = Hourly
-daily-tab = Daily
 updated-ago = Updated {$minutes} min ago
 updated-now = Updated just now
 

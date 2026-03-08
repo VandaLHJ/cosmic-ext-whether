@@ -238,6 +238,10 @@ pub struct DaySummary {
     pub low: Option<i32>,
     pub short_forecast: String,
     pub is_daytime: bool,
+    pub wind_speed: String,
+    pub wind_direction: String,
+    pub precip_chance: Option<i32>,
+    pub detailed_forecast: String,
 }
 
 pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
@@ -262,6 +266,14 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
                 low,
                 short_forecast: period.short_forecast.clone(),
                 is_daytime: true,
+                wind_speed: period.wind_speed.clone(),
+                wind_direction: period.wind_direction.clone(),
+                precip_chance: period
+                    .probability_of_precipitation
+                    .as_ref()
+                    .and_then(|p| p.value)
+                    .map(|v| v as i32),
+                detailed_forecast: period.detailed_forecast.clone(),
             });
             i += if low.is_some() { 2 } else { 1 };
         } else {
@@ -272,6 +284,14 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
                 low: Some(period.temperature),
                 short_forecast: period.short_forecast.clone(),
                 is_daytime: false,
+                wind_speed: period.wind_speed.clone(),
+                wind_direction: period.wind_direction.clone(),
+                precip_chance: period
+                    .probability_of_precipitation
+                    .as_ref()
+                    .and_then(|p| p.value)
+                    .map(|v| v as i32),
+                detailed_forecast: period.detailed_forecast.clone(),
             });
             i += 1;
         }

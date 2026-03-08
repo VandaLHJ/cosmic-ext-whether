@@ -864,7 +864,8 @@ impl AppModel {
                     .size(48);
 
                 let temp_label = format!("{}°{hero_unit}", hero_temp);
-                let temp_btn = widget::button::text(temp_label)
+                let temp_btn = widget::button::custom(widget::text::title1(temp_label))
+                    .class(cosmic::widget::button::ButtonClass::Link)
                     .on_press(Message::ToggleUnits);
 
                 let icon_temp_row = cosmic::iced_widget::row![icon, temp_btn]

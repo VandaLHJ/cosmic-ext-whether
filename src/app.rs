@@ -1020,7 +1020,7 @@ impl AppModel {
                     let row_btn = widget::button::custom(row_content)
                         .on_press(Message::ToggleDay(i))
                         .width(Length::Fill)
-                        .class(cosmic::theme::Button::Text);
+                        .class(cosmic::theme::Button::MenuItem);
 
                     rows = rows.push(row_btn);
 

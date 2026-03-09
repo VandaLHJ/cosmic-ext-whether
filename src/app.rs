@@ -861,10 +861,10 @@ impl AppModel {
 
                 let icon = widget::icon::from_name(hero_icon_name)
                     .symbolic(true)
-                    .size(48);
+                    .size(28);
 
                 let temp_label = format!("{}°{hero_unit}", hero_temp);
-                let temp_btn = widget::button::custom(widget::text::title1(temp_label))
+                let temp_btn = widget::button::custom(widget::text::title3(temp_label))
                     .class(cosmic::widget::button::ButtonClass::Link)
                     .on_press(Message::ToggleUnits);
 
@@ -1050,7 +1050,7 @@ impl AppModel {
                             && day.detailed_forecast != day.short_forecast
                         {
                             detail_col = detail_col.push(
-                                widget::text::caption(
+                                widget::text::body(
                                     day.detailed_forecast.clone(),
                                 ),
                             );

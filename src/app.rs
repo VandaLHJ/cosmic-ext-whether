@@ -1020,7 +1020,74 @@ impl AppModel {
                     let row_btn = widget::button::custom(row_content)
                         .on_press(Message::ToggleDay(i))
                         .width(Length::Fill)
-                        .class(cosmic::theme::Button::MenuItem);
+                        .class(cosmic::theme::Button::Custom {
+                            active: Box::new(|_focused, _theme| {
+                                cosmic::widget::button::Style {
+                                    background: None,
+                                    border_width: 0.0,
+                                    border_color: cosmic::iced::Color::TRANSPARENT,
+                                    outline_width: 0.0,
+                                    outline_color: cosmic::iced::Color::TRANSPARENT,
+                                    icon_color: None,
+                                    text_color: None,
+                                    overlay: None,
+                                    shadow_offset: Default::default(),
+                                    border_radius: Default::default(),
+                                }
+                            }),
+                            disabled: Box::new(|_theme| {
+                                cosmic::widget::button::Style {
+                                    background: None,
+                                    border_width: 0.0,
+                                    border_color: cosmic::iced::Color::TRANSPARENT,
+                                    outline_width: 0.0,
+                                    outline_color: cosmic::iced::Color::TRANSPARENT,
+                                    icon_color: None,
+                                    text_color: None,
+                                    overlay: None,
+                                    shadow_offset: Default::default(),
+                                    border_radius: Default::default(),
+                                }
+                            }),
+                            hovered: Box::new(|_focused, theme| {
+                                let cosmic = theme.cosmic();
+                                cosmic::widget::button::Style {
+                                    background: Some(
+                                        cosmic::iced::Background::Color(
+                                            cosmic.background.component.hover.into(),
+                                        ),
+                                    ),
+                                    overlay: None,
+                                    border_width: 0.0,
+                                    border_color: cosmic::iced::Color::TRANSPARENT,
+                                    outline_width: 0.0,
+                                    outline_color: cosmic::iced::Color::TRANSPARENT,
+                                    icon_color: None,
+                                    text_color: None,
+                                    shadow_offset: Default::default(),
+                                    border_radius: cosmic.radius_s().into(),
+                                }
+                            }),
+                            pressed: Box::new(|_focused, theme| {
+                                let cosmic = theme.cosmic();
+                                cosmic::widget::button::Style {
+                                    background: Some(
+                                        cosmic::iced::Background::Color(
+                                            cosmic.background.component.pressed.into(),
+                                        ),
+                                    ),
+                                    overlay: None,
+                                    border_width: 0.0,
+                                    border_color: cosmic::iced::Color::TRANSPARENT,
+                                    outline_width: 0.0,
+                                    outline_color: cosmic::iced::Color::TRANSPARENT,
+                                    icon_color: None,
+                                    text_color: None,
+                                    shadow_offset: Default::default(),
+                                    border_radius: cosmic.radius_s().into(),
+                                }
+                            }),
+                        });
 
                     rows = rows.push(row_btn);
 

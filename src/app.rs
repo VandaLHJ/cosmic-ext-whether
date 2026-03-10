@@ -617,7 +617,7 @@ impl AppModel {
         ]
         .spacing(12)
         .padding(16)
-        .width(Length::Fixed(340.0));
+        .width(Length::Fixed(360.0));
 
         if self.searching {
             let text = fl!("searching");
@@ -656,7 +656,7 @@ impl AppModel {
         let mut col = cosmic::iced_widget::column![title_row]
             .spacing(12)
             .padding(16)
-            .width(Length::Fixed(340.0));
+            .width(Length::Fixed(360.0));
 
         // Saved locations list
         if self.config.locations.is_empty() {
@@ -752,7 +752,7 @@ impl AppModel {
         let mut col = cosmic::iced_widget::column![]
             .spacing(12)
             .padding(16)
-            .width(Length::Fixed(340.0));
+            .width(Length::Fixed(360.0));
 
         // --- Header: location name heading + chevron + refresh ---
         let location_name = self

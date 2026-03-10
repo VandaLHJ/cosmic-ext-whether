@@ -948,7 +948,7 @@ impl AppModel {
                     let unit = &period.temperature_unit;
                     let temp = widget::text::body(format!("{}°{}", period.temperature, unit));
 
-                    let hour_col = cosmic::iced_widget::column![
+                    let mut hour_col = cosmic::iced_widget::column![
                         widget::text::caption(hour_label),
                         icon,
                         temp,
@@ -956,6 +956,21 @@ impl AppModel {
                     .spacing(4)
                     .align_x(Alignment::Center)
                     .width(Length::Fill);
+
+                    let has_precip_icon = icon_name.contains("showers")
+                        || icon_name.contains("storm")
+                        || icon_name.contains("snow");
+                    if let Some(precip) = period
+                        .probability_of_precipitation
+                        .as_ref()
+                        .and_then(|p| p.value)
+                    {
+                        let pct = precip as u32;
+                        if has_precip_icon || pct >= 20 {
+                            hour_col = hour_col
+                                .push(widget::text::caption(format!("{}%", pct)));
+                        }
+                    }
 
                     hourly_row = hourly_row.push(hour_col);
                 }

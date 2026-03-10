@@ -945,8 +945,7 @@ impl AppModel {
                         .symbolic(true)
                         .size(24);
 
-                    let unit = &period.temperature_unit;
-                    let temp = widget::text::body(format!("{}°{}", period.temperature, unit));
+                    let temp = widget::text::body(format!("{}°", period.temperature));
 
                     let mut hour_col = cosmic::iced_widget::column![
                         widget::text::caption(hour_label),

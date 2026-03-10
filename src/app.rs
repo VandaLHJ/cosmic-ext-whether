@@ -236,6 +236,7 @@ impl cosmic::Application for AppModel {
                 self.fetch_state = FetchState::Loaded;
                 self.last_updated = Some(std::time::Instant::now());
 
+                let old_config = self.config.clone();
                 let idx = self.config.active_location_index;
                 if let Some(loc) = self.config.locations.get_mut(idx) {
                     if let Some(grid) = result.cached_grid {
@@ -257,7 +258,9 @@ impl cosmic::Application for AppModel {
                 self.hourly_offset = 0;
                 self.expanded_day = None;
                 self.forecast = Some(result.forecast);
-                config::save_config(&self.config_handle, &self.config);
+                if self.config != old_config {
+                    config::save_config(&self.config_handle, &self.config);
+                }
             }
             Message::WeatherFetched(Err(e)) => {
                 self.fetch_state = FetchState::Error(e);

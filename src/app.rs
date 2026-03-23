@@ -78,7 +78,7 @@ pub enum Message {
     PopupClosed(Id),
     Surface(cosmic::surface::Action),
     FetchWeather,
-    WeatherFetched(Result<WeatherResult, String>),
+    WeatherFetched(Box<Result<WeatherResult, String>>),
     Tick(()),
     SearchInput(String),
     SearchSubmit,
@@ -232,39 +232,41 @@ impl cosmic::Application for AppModel {
                 self.fetch_state = FetchState::Loading;
                 return fetch_weather_task(&self.config);
             }
-            Message::WeatherFetched(Ok(result)) => {
-                self.fetch_state = FetchState::Loaded;
-                self.last_updated = Some(std::time::Instant::now());
+            Message::WeatherFetched(result) => match *result {
+                Ok(result) => {
+                    self.fetch_state = FetchState::Loaded;
+                    self.last_updated = Some(std::time::Instant::now());
 
-                let old_config = self.config.clone();
-                let idx = self.config.active_location_index;
-                if let Some(loc) = self.config.locations.get_mut(idx) {
-                    if let Some(grid) = result.cached_grid {
-                        loc.cached_grid = Some(grid);
+                    let old_config = self.config.clone();
+                    let idx = self.config.active_location_index;
+                    if let Some(loc) = self.config.locations.get_mut(idx) {
+                        if let Some(grid) = result.cached_grid {
+                            loc.cached_grid = Some(grid);
+                        }
+                        if loc.name.is_empty() && !result.forecast.location_name.is_empty() {
+                            loc.name = result.forecast.location_name.clone();
+                        }
                     }
-                    if loc.name.is_empty() && !result.forecast.location_name.is_empty() {
-                        loc.name = result.forecast.location_name.clone();
+                    self.location_names = self
+                        .config
+                        .locations
+                        .iter()
+                        .map(|l| l.name.clone())
+                        .collect();
+
+                    self.alerts = result.alerts;
+                    self.observation = result.observation;
+                    self.hourly_offset = 0;
+                    self.expanded_day = None;
+                    self.forecast = Some(result.forecast);
+                    if self.config != old_config {
+                        config::save_config(&self.config_handle, &self.config);
                     }
                 }
-                self.location_names = self
-                    .config
-                    .locations
-                    .iter()
-                    .map(|l| l.name.clone())
-                    .collect();
-
-                self.alerts = result.alerts;
-                self.observation = result.observation;
-                self.hourly_offset = 0;
-                self.expanded_day = None;
-                self.forecast = Some(result.forecast);
-                if self.config != old_config {
-                    config::save_config(&self.config_handle, &self.config);
+                Err(e) => {
+                    self.fetch_state = FetchState::Error(e);
                 }
-            }
-            Message::WeatherFetched(Err(e)) => {
-                self.fetch_state = FetchState::Error(e);
-            }
+            },
             Message::Tick(_) => {
                 if self.config.active_location().is_some()
                     && !matches!(self.fetch_state, FetchState::Loading)
@@ -505,7 +507,7 @@ impl cosmic::Application for AppModel {
         Some(Message::PopupClosed(id))
     }
 
-    fn style(&self) -> Option<cosmic::iced_runtime::Appearance> {
+    fn style(&self) -> Option<cosmic::iced::theme::Style> {
         Some(cosmic::applet::style())
     }
 }
@@ -523,7 +525,7 @@ fn fetch_weather_task(config: &WhetherConfig) -> Task<Message> {
             WeatherSource::Nws => Task::perform(
                 nws::fetch_weather(lat, lon, cached_grid, use_fahrenheit),
                 |result| {
-                    cosmic::Action::App(Message::WeatherFetched(
+                    cosmic::Action::App(Message::WeatherFetched(Box::new(
                         result
                             .map(|(forecast, grid, alerts, observation)| WeatherResult {
                                 forecast,
@@ -532,13 +534,13 @@ fn fetch_weather_task(config: &WhetherConfig) -> Task<Message> {
                                 observation,
                             })
                             .map_err(|e| e.to_string()),
-                    ))
+                    )))
                 },
             ),
             WeatherSource::OpenMeteo => Task::perform(
                 open_meteo::fetch_weather(lat, lon, name, use_fahrenheit),
                 |result| {
-                    cosmic::Action::App(Message::WeatherFetched(
+                    cosmic::Action::App(Message::WeatherFetched(Box::new(
                         result
                             .map(|(forecast, observation)| WeatherResult {
                                 forecast,
@@ -547,7 +549,7 @@ fn fetch_weather_task(config: &WhetherConfig) -> Task<Message> {
                                 observation,
                             })
                             .map_err(|e| e.to_string()),
-                    ))
+                    )))
                 },
             ),
         }
@@ -927,7 +929,7 @@ impl AppModel {
                     .on_press(Message::HourlyPrev)
                     .into()
                 } else {
-                    widget::Space::with_width(Length::Fixed(24.0)).into()
+                    widget::Space::new().width(Length::Fixed(24.0)).into()
                 };
 
                 let mut hourly_row = cosmic::iced_widget::row![].spacing(0);
@@ -986,7 +988,7 @@ impl AppModel {
                     .on_press(Message::HourlyNext)
                     .into()
                 } else {
-                    widget::Space::with_width(Length::Fixed(24.0)).into()
+                    widget::Space::new().width(Length::Fixed(24.0)).into()
                 };
 
                 let paged_row = cosmic::iced_widget::row![prev_arrow, hourly_row, next_arrow]

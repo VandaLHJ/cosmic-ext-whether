@@ -62,16 +62,15 @@ impl WhetherConfig {
 
 pub fn load_config() -> (WhetherConfig, Option<Config>) {
     // Try loading v4 config
-    match Config::new(APP_ID, WhetherConfig::VERSION) {
-        Ok(config) => match WhetherConfig::get_entry(&config) {
+    if let Ok(config) = Config::new(APP_ID, WhetherConfig::VERSION) {
+        match WhetherConfig::get_entry(&config) {
             Ok(cfg) => return (cfg, Some(config)),
             Err((_, cfg)) => {
                 // Partial load succeeded — new fields get defaults
                 let _ = cfg.write_entry(&config);
                 return (cfg, Some(config));
             }
-        },
-        Err(_) => {}
+        }
     }
 
     // v4 config doesn't exist — try migrating from v3

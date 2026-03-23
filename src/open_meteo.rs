@@ -343,13 +343,7 @@ fn wmo_code_description(code: u32, is_day: bool) -> String {
                 "Clear"
             }
         }
-        1 => {
-            if is_day {
-                "Mostly clear"
-            } else {
-                "Mostly clear"
-            }
-        }
+        1 => "Mostly clear",
         2 => "Partly cloudy",
         3 => "Overcast",
         45 | 48 => "Fog",

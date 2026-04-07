@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use cosmic::app::{Core, Task};
 use cosmic::iced::window::Id;
 use cosmic::iced::{Alignment, Length, Rectangle, Subscription};
@@ -5,6 +7,9 @@ use cosmic::iced_runtime::core::window;
 use cosmic::surface::action::{app_popup, destroy_popup};
 use cosmic::widget;
 use cosmic::Element;
+
+static AUTOSIZE_MAIN_ID: LazyLock<widget::Id> =
+    LazyLock::new(|| widget::Id::new("autosize-main"));
 
 use crate::config::{self, APP_ID, WhetherConfig};
 use crate::fl;
@@ -174,9 +179,12 @@ impl cosmic::Application for AppModel {
             icon
         };
 
-        self.core
-            .applet
-            .button_from_element(content, true)
+        let horizontal = self.core.applet.is_horizontal();
+        let pad = self.core.applet.suggested_padding(true).0;
+
+        let button = cosmic::widget::button::custom(content)
+            .padding(if horizontal { [0, pad] } else { [pad, 0] })
+            .class(cosmic::theme::Button::AppletIcon)
             .on_press_with_rectangle(move |offset, bounds| {
                 if let Some(id) = have_popup {
                     Message::Surface(destroy_popup(id))
@@ -203,8 +211,9 @@ impl cosmic::Application for AppModel {
                         None,
                     ))
                 }
-            })
-            .into()
+            });
+
+        widget::autosize::autosize(button, AUTOSIZE_MAIN_ID.clone()).into()
     }
 
     fn view_window(&self, _id: Id) -> Element<'_, Message> {

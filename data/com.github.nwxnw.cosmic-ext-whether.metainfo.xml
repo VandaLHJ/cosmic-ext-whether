@@ -8,6 +8,7 @@
   <description>
     <p>A COSMIC panel applet for weather forecasts. Supports NWS (US) and Open-Meteo (worldwide) weather sources with hourly and daily forecasts, location search, and configurable units.</p>
   </description>
+  <icon type="stock">com.github.nwxnw.cosmic-ext-whether-symbolic</icon>
   <launchable type="desktop-id">com.github.nwxnw.cosmic-ext-whether.desktop</launchable>
   <url type="homepage">https://github.com/nwxnw/cosmic-ext-whether</url>
   <url type="bugtracker">https://github.com/nwxnw/cosmic-ext-whether/issues</url>

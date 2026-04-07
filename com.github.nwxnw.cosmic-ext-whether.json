@@ -25,7 +25,8 @@
       "CARGO_HOME": "/run/build/cosmic-ext-whether/cargo",
       "BIN_DIR": "/app/bin",
       "APP_DIR": "/app/share/applications",
-      "METAINFO_DIR": "/app/share/metainfo"
+      "METAINFO_DIR": "/app/share/metainfo",
+      "ICON_DIR": "/app/share/icons/hicolor/scalable/apps"
     }
   },
   "modules": [

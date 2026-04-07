@@ -8,11 +8,16 @@ base-dir := absolute_path(clean(rootdir / prefix))
 export INSTALL_DIR := base-dir / 'share'
 
 bin-src := 'target' / 'release' / name
-bin-dst := base-dir / 'bin' / name
+
+# Configurable paths (overridden by env vars during flatpak builds)
+bin_dir := env_var_or_default("BIN_DIR", base-dir / 'bin')
+app_dir := env_var_or_default("APP_DIR", INSTALL_DIR / 'applications')
+metainfo_dir := env_var_or_default("METAINFO_DIR", INSTALL_DIR / 'metainfo')
 
 desktop := APPID + '.desktop'
 desktop-src := 'data' / desktop
-desktop-dst := clean(INSTALL_DIR / 'applications' / desktop)
+metainfo-src := 'data' / APPID + '.metainfo.xml'
+wrapper-src := 'data' / APPID + '.sh'
 
 default: build-release
 
@@ -26,12 +31,16 @@ run *args:
     cargo build --release {{args}} && RUST_BACKTRACE=1 {{bin-src}}
 
 install:
-    install -Dm0755 {{bin-src}} {{bin-dst}}
-    install -Dm0644 {{desktop-src}} {{desktop-dst}}
+    install -Dm0755 {{bin-src}} {{bin_dir}}/{{name}}
+    install -Dm0755 {{wrapper-src}} {{bin_dir}}/{{name}}.sh
+    install -Dm0644 {{desktop-src}} {{app_dir}}/{{APPID}}.desktop
+    install -Dm0644 {{metainfo-src}} {{metainfo_dir}}/{{APPID}}.metainfo.xml
 
 uninstall:
-    rm -f {{bin-dst}}
-    rm -f {{desktop-dst}}
+    rm -f {{bin_dir}}/{{name}}
+    rm -f {{bin_dir}}/{{name}}.sh
+    rm -f {{app_dir}}/{{APPID}}.desktop
+    rm -f {{metainfo_dir}}/{{APPID}}.metainfo.xml
 
 clean:
     cargo clean

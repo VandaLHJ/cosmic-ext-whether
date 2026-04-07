@@ -3,3 +3,14 @@
 *.swp
 *.swo
 *~
+
+# Flatpak build artifacts
+/build-dir
+/repo
+/vendor
+/.cargo/config.toml
+*.flatpak
+
+# Debian build artifacts
+/deb_build
+*.deb

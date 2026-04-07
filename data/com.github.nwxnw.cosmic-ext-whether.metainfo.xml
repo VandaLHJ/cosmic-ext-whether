@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.github.nwxnw.cosmic-ext-whether</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <name>Whether</name>
+  <summary>Weather applet for COSMIC</summary>
+  <description>
+    <p>A COSMIC panel applet for weather forecasts. Supports NWS (US) and Open-Meteo (worldwide) weather sources with hourly and daily forecasts, location search, and configurable units.</p>
+  </description>
+  <launchable type="desktop-id">com.github.nwxnw.cosmic-ext-whether.desktop</launchable>
+  <url type="homepage">https://github.com/nwxnw/cosmic-ext-whether</url>
+  <url type="bugtracker">https://github.com/nwxnw/cosmic-ext-whether/issues</url>
+  <provides>
+    <id>com.system76.CosmicApplet</id>
+    <binary>cosmic-ext-whether</binary>
+  </provides>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>touch</control>
+  </supports>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/nwxnw/cosmic-ext-whether/master/screenshots/whether.png</image>
+      <caption>Weather forecast popup</caption>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.1.0" date="2026-04-06">
+      <description>
+        <p>Initial release.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1" />
+</component>

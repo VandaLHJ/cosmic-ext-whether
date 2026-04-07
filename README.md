@@ -16,26 +16,41 @@ A weather applet for the [COSMIC](https://github.com/pop-os/cosmic-epoch) deskto
 - Temperature unit toggle (click the hero temperature to switch between °F and °C)
 - Panel displays weather icon and current temperature
 
-## Building
+## Installation
 
-Requires Rust and [just](https://github.com/casey/just).
+Download the latest release from the [Releases](https://github.com/nwxnw/cosmic-ext-whether/releases) page.
+
+### Debian/Ubuntu (.deb)
+
+```sh
+sudo apt install ./cosmic-ext-whether_0.1.0_amd64.deb
+```
+
+### Flatpak
+
+```sh
+flatpak install --user ./cosmic-ext-whether_0.1.0.flatpak
+```
+
+### From source
+
+Requires Rust, [just](https://github.com/casey/just), and system dependencies:
+
+```sh
+sudo apt install libxkbcommon-dev wayland-protocols libwayland-dev
+```
 
 ```sh
 just build-release
-```
-
-## Installation
-
-```sh
-just install
+sudo just install
 ```
 
 Then add **Whether** to your COSMIC panel via Settings > Desktop > Panel > Applets.
 
-To remove:
+### Uninstall
 
 ```sh
-just uninstall
+sudo just uninstall
 ```
 
 ## License

@@ -1,5 +1,6 @@
 [Desktop Entry]
 Name=Whether
+Comment=Weather forecasts from NWS and Open-Meteo
 Type=Application
 Exec=cosmic-ext-whether
 Terminal=false

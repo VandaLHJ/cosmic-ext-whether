@@ -15,3 +15,6 @@
 # Debian build artifacts
 /deb_build
 *.deb
+
+# Misc
+VM-Flatbak-list

@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use cosmic::app::{Core, Task};
 use cosmic::iced::window::Id;
 use cosmic::iced::{Alignment, Length, Rectangle, Subscription};
-use cosmic::iced_runtime::core::window;
+use cosmic::iced::core::window;
 use cosmic::surface::action::{app_popup, destroy_popup};
 use cosmic::widget;
 use cosmic::Element;
@@ -165,12 +165,12 @@ impl cosmic::Application for AppModel {
         let content: Element<'_, Message> = if let Some(temp) = self.current_temp_text() {
             let temp_widget = widget::text::body(temp).width(Length::Shrink);
             if self.core.applet.is_horizontal() {
-                cosmic::iced_widget::row![icon, temp_widget]
+                cosmic::iced::widget::row![icon, temp_widget]
                     .spacing(4)
                     .align_y(Alignment::Center)
                     .into()
             } else {
-                cosmic::iced_widget::column![icon, temp_widget]
+                cosmic::iced::widget::column![icon, temp_widget]
                     .spacing(2)
                     .align_x(Alignment::Center)
                     .into()
@@ -618,11 +618,11 @@ impl AppModel {
                 if self.search_input.is_empty() { None } else { Some(Message::SearchSubmit) },
             );
 
-        let search_row = cosmic::iced_widget::row![search, search_btn]
+        let search_row = cosmic::iced::widget::row![search, search_btn]
             .spacing(8)
             .align_y(Alignment::Center);
 
-        let mut col = cosmic::iced_widget::column![
+        let mut col = cosmic::iced::widget::column![
             widget::text::title3(title),
             search_row,
         ]
@@ -657,14 +657,14 @@ impl AppModel {
         )
         .on_press(Message::BackToMain);
 
-        let title_row = cosmic::iced_widget::row![
+        let title_row = cosmic::iced::widget::row![
             widget::text::title3(title).width(Length::Fill),
             back_btn,
         ]
         .align_y(Alignment::Center)
         .spacing(8);
 
-        let mut col = cosmic::iced_widget::column![title_row]
+        let mut col = cosmic::iced::widget::column![title_row]
             .spacing(12)
             .padding(16)
             .width(Length::Fixed(360.0));
@@ -674,7 +674,7 @@ impl AppModel {
             let text = fl!("no-saved-locations");
             col = col.push(widget::text::body(text));
         } else {
-            let mut list = cosmic::iced_widget::column![].spacing(0);
+            let mut list = cosmic::iced::widget::column![].spacing(0);
             for (i, loc) in self.config.locations.iter().enumerate() {
                 if i > 0 {
                     list = list.push(widget::divider::horizontal::light());
@@ -692,7 +692,7 @@ impl AppModel {
                         widget::text::caption(source_label).into()
                     };
 
-                let label_col = cosmic::iced_widget::column![
+                let label_col = cosmic::iced::widget::column![
                     widget::text::body(loc.name.clone()),
                     source_line,
                 ]
@@ -707,7 +707,7 @@ impl AppModel {
                 )
                 .on_press(Message::RemoveLocation(i));
 
-                let row = cosmic::iced_widget::row![
+                let row = cosmic::iced::widget::row![
                     location_radio,
                     delete_btn,
                 ]
@@ -734,7 +734,7 @@ impl AppModel {
                 if self.search_input.is_empty() { None } else { Some(Message::SearchSubmit) },
             );
 
-        let search_row = cosmic::iced_widget::row![search, search_btn]
+        let search_row = cosmic::iced::widget::row![search, search_btn]
             .spacing(8)
             .align_y(Alignment::Center);
         col = col.push(search_row);
@@ -760,7 +760,7 @@ impl AppModel {
     }
 
     fn view_main(&self) -> Element<'_, Message> {
-        let mut col = cosmic::iced_widget::column![]
+        let mut col = cosmic::iced::widget::column![]
             .spacing(12)
             .padding(16)
             .width(Length::Fixed(360.0));
@@ -785,7 +785,7 @@ impl AppModel {
         .on_press(Message::FetchWeather);
 
         let header_row =
-            cosmic::iced_widget::row![heading, chevron_btn, refresh_btn]
+            cosmic::iced::widget::row![heading, chevron_btn, refresh_btn]
                 .align_y(Alignment::Center)
                 .spacing(8);
         col = col.push(header_row);
@@ -796,14 +796,14 @@ impl AppModel {
                 .symbolic(true)
                 .size(24);
 
-            let mut alert_col = cosmic::iced_widget::column![].spacing(4);
+            let mut alert_col = cosmic::iced::widget::column![].spacing(4);
             let heading_text = fl!("alerts-heading");
             alert_col = alert_col.push(widget::text::body(heading_text));
             for alert in &self.alerts {
                 alert_col = alert_col.push(widget::text::caption(alert.headline.clone()));
             }
 
-            let alert_row = cosmic::iced_widget::row![alert_icon, alert_col]
+            let alert_row = cosmic::iced::widget::row![alert_icon, alert_col]
                 .spacing(8)
                 .align_y(Alignment::Start)
                 .padding(12)
@@ -882,7 +882,7 @@ impl AppModel {
                     .class(cosmic::widget::button::ButtonClass::Link)
                     .on_press(Message::ToggleUnits);
 
-                let icon_temp_row = cosmic::iced_widget::row![icon, temp_btn]
+                let icon_temp_row = cosmic::iced::widget::row![icon, temp_btn]
                     .spacing(12)
                     .align_y(Alignment::Center);
 
@@ -905,7 +905,7 @@ impl AppModel {
                 }
                 let detail_text = widget::text::body(details.join(" · "));
 
-                let hero_content = cosmic::iced_widget::column![
+                let hero_content = cosmic::iced::widget::column![
                     icon_temp_row,
                     forecast_text,
                     detail_text,
@@ -941,7 +941,7 @@ impl AppModel {
                     widget::Space::new().width(Length::Fixed(24.0)).into()
                 };
 
-                let mut hourly_row = cosmic::iced_widget::row![].spacing(0);
+                let mut hourly_row = cosmic::iced::widget::row![].spacing(0);
                 for i in offset..end {
                     let period = &forecast.hourly_periods[i];
                     let hour_label = if i == 0 {
@@ -961,7 +961,7 @@ impl AppModel {
 
                     let temp = widget::text::body(format!("{}°", period.temperature));
 
-                    let mut hour_col = cosmic::iced_widget::column![
+                    let mut hour_col = cosmic::iced::widget::column![
                         widget::text::caption(hour_label),
                         icon,
                         temp,
@@ -1000,7 +1000,7 @@ impl AppModel {
                     widget::Space::new().width(Length::Fixed(24.0)).into()
                 };
 
-                let paged_row = cosmic::iced_widget::row![prev_arrow, hourly_row, next_arrow]
+                let paged_row = cosmic::iced::widget::row![prev_arrow, hourly_row, next_arrow]
                     .spacing(4)
                     .align_y(Alignment::Center)
                     .width(Length::Fill);
@@ -1012,7 +1012,7 @@ impl AppModel {
             // --- Daily forecast (clickable rows with inline expansion) ---
             {
                 let summaries = pair_daily_periods(&forecast.periods);
-                let mut rows = cosmic::iced_widget::column![].spacing(0);
+                let mut rows = cosmic::iced::widget::column![].spacing(0);
 
                 for (i, day) in summaries.iter().enumerate() {
                     if i > 0 {
@@ -1040,7 +1040,7 @@ impl AppModel {
                     let temp_text = widget::text::body(temp_str);
 
                     let row_content =
-                        cosmic::iced_widget::row![icon, name_text, temp_text]
+                        cosmic::iced::widget::row![icon, name_text, temp_text]
                             .spacing(8)
                             .align_y(Alignment::Center)
                             .padding([6, 4]);
@@ -1121,7 +1121,7 @@ impl AppModel {
 
                     if is_expanded {
                         let mut detail_col =
-                            cosmic::iced_widget::column![].spacing(4);
+                            cosmic::iced::widget::column![].spacing(4);
 
                         let wind = fl!(
                             "wind-info",
@@ -1186,7 +1186,7 @@ impl AppModel {
                         widget::text::caption(loc.source.label()).into()
                     };
 
-                    let footer_row = cosmic::iced_widget::row![
+                    let footer_row = cosmic::iced::widget::row![
                         time_caption,
                         source_element,
                     ]

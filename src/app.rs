@@ -1,17 +1,16 @@
 use std::sync::LazyLock;
 
 use cosmic::app::{Core, Task};
+use cosmic::iced::core::window;
 use cosmic::iced::window::Id;
 use cosmic::iced::{Alignment, Length, Rectangle, Subscription};
-use cosmic::iced::core::window;
 use cosmic::surface::action::{app_popup, destroy_popup};
 use cosmic::widget;
 use cosmic::Element;
 
-static AUTOSIZE_MAIN_ID: LazyLock<widget::Id> =
-    LazyLock::new(|| widget::Id::new("autosize-main"));
+static AUTOSIZE_MAIN_ID: LazyLock<widget::Id> = LazyLock::new(|| widget::Id::new("autosize-main"));
 
-use crate::config::{self, APP_ID, WhetherConfig};
+use crate::config::{self, WhetherConfig, APP_ID};
 use crate::fl;
 use crate::geocoding;
 use crate::nws;
@@ -127,11 +126,7 @@ impl cosmic::Application for AppModel {
             Page::Main
         };
 
-        let location_names = config
-            .locations
-            .iter()
-            .map(|l| l.name.clone())
-            .collect();
+        let location_names = config.locations.iter().map(|l| l.name.clone()).collect();
 
         let mut app = Self {
             core,
@@ -317,10 +312,7 @@ impl cosmic::Application for AppModel {
             }
             Message::SelectLocation(i) => {
                 if let Some(result) = self.search_results.get(i) {
-                    let country_code = result
-                        .address
-                        .as_ref()
-                        .and_then(|a| a.country_code.clone());
+                    let country_code = result.address.as_ref().and_then(|a| a.country_code.clone());
                     let source = if geocoding::is_us_location(result) {
                         WeatherSource::Nws
                     } else {
@@ -355,8 +347,7 @@ impl cosmic::Application for AppModel {
             Message::SourceSelected => {
                 let loc_idx = self.config.active_location_index;
                 if let Some(loc) = self.config.locations.get_mut(loc_idx) {
-                    if WeatherSource::available_for(loc.country_code.as_deref()).len() > 1
-                    {
+                    if WeatherSource::available_for(loc.country_code.as_deref()).len() > 1 {
                         loc.source = loc.source.toggle();
                         loc.cached_grid = None;
                         config::save_config(&self.config_handle, &self.config);
@@ -367,9 +358,7 @@ impl cosmic::Application for AppModel {
                 }
             }
             Message::ActivateLocation(idx) => {
-                if idx < self.config.locations.len()
-                    && idx != self.config.active_location_index
-                {
+                if idx < self.config.locations.len() && idx != self.config.active_location_index {
                     self.config.active_location_index = idx;
                     self.location_names = self
                         .config
@@ -487,9 +476,7 @@ impl cosmic::Application for AppModel {
                     self.config.active_location() != new_config.active_location();
                 let units_changed = self.config.use_fahrenheit != new_config.use_fahrenheit;
                 self.config = new_config;
-                if (location_changed || units_changed)
-                    && self.config.active_location().is_some()
-                {
+                if (location_changed || units_changed) && self.config.active_location().is_some() {
                     self.fetch_state = FetchState::Loading;
                     return fetch_weather_task(&self.config);
                 }
@@ -613,22 +600,22 @@ impl AppModel {
             .on_submit(|_| Message::SearchSubmit);
 
         let search_label = fl!("search-button");
-        let search_btn =
-            widget::button::suggested(search_label).on_press_maybe(
-                if self.search_input.is_empty() { None } else { Some(Message::SearchSubmit) },
-            );
+        let search_btn = widget::button::suggested(search_label).on_press_maybe(
+            if self.search_input.is_empty() {
+                None
+            } else {
+                Some(Message::SearchSubmit)
+            },
+        );
 
         let search_row = cosmic::iced::widget::row![search, search_btn]
             .spacing(8)
             .align_y(Alignment::Center);
 
-        let mut col = cosmic::iced::widget::column![
-            widget::text::title3(title),
-            search_row,
-        ]
-        .spacing(12)
-        .padding(16)
-        .width(Length::Fixed(360.0));
+        let mut col = cosmic::iced::widget::column![widget::text::title3(title), search_row,]
+            .spacing(12)
+            .padding(16)
+            .width(Length::Fixed(360.0));
 
         if self.searching {
             let text = fl!("searching");
@@ -638,8 +625,8 @@ impl AppModel {
             col = col.push(widget::text::body(text));
         } else if !self.search_results.is_empty() {
             for (i, result) in self.search_results.iter().enumerate() {
-                let btn = widget::button::text(&result.display_name)
-                    .on_press(Message::SelectLocation(i));
+                let btn =
+                    widget::button::text(&result.display_name).on_press(Message::SelectLocation(i));
                 col = col.push(btn);
             }
         } else if self.search_done {
@@ -652,17 +639,14 @@ impl AppModel {
 
     fn view_locations(&self) -> Element<'_, Message> {
         let title = fl!("manage-locations");
-        let back_btn = widget::button::icon(
-            widget::icon::from_name("go-previous-symbolic").symbolic(true),
-        )
-        .on_press(Message::BackToMain);
+        let back_btn =
+            widget::button::icon(widget::icon::from_name("go-previous-symbolic").symbolic(true))
+                .on_press(Message::BackToMain);
 
-        let title_row = cosmic::iced::widget::row![
-            widget::text::title3(title).width(Length::Fill),
-            back_btn,
-        ]
-        .align_y(Alignment::Center)
-        .spacing(8);
+        let title_row =
+            cosmic::iced::widget::row![widget::text::title3(title).width(Length::Fill), back_btn,]
+                .align_y(Alignment::Center)
+                .spacing(8);
 
         let mut col = cosmic::iced::widget::column![title_row]
             .spacing(12)
@@ -699,21 +683,19 @@ impl AppModel {
                 .spacing(2);
 
                 let selected = if is_active { Some(i) } else { None };
-                let location_radio = widget::radio(label_col, i, selected, Message::ActivateLocation)
-                    .width(Length::Fill);
+                let location_radio =
+                    widget::radio(label_col, i, selected, Message::ActivateLocation)
+                        .width(Length::Fill);
 
                 let delete_btn = widget::button::icon(
                     widget::icon::from_name("edit-delete-symbolic").symbolic(true),
                 )
                 .on_press(Message::RemoveLocation(i));
 
-                let row = cosmic::iced::widget::row![
-                    location_radio,
-                    delete_btn,
-                ]
-                .spacing(8)
-                .align_y(Alignment::Center)
-                .padding([6, 4]);
+                let row = cosmic::iced::widget::row![location_radio, delete_btn,]
+                    .spacing(8)
+                    .align_y(Alignment::Center)
+                    .padding([6, 4]);
 
                 list = list.push(row);
             }
@@ -729,10 +711,13 @@ impl AppModel {
             .on_submit(|_| Message::SearchSubmit);
 
         let search_label = fl!("search-button");
-        let search_btn =
-            widget::button::suggested(search_label).on_press_maybe(
-                if self.search_input.is_empty() { None } else { Some(Message::SearchSubmit) },
-            );
+        let search_btn = widget::button::suggested(search_label).on_press_maybe(
+            if self.search_input.is_empty() {
+                None
+            } else {
+                Some(Message::SearchSubmit)
+            },
+        );
 
         let search_row = cosmic::iced::widget::row![search, search_btn]
             .spacing(8)
@@ -747,8 +732,8 @@ impl AppModel {
             col = col.push(widget::text::body(text));
         } else if !self.search_results.is_empty() {
             for (i, result) in self.search_results.iter().enumerate() {
-                let btn = widget::button::text(&result.display_name)
-                    .on_press(Message::SelectLocation(i));
+                let btn =
+                    widget::button::text(&result.display_name).on_press(Message::SelectLocation(i));
                 col = col.push(btn);
             }
         } else if self.search_done {
@@ -774,20 +759,17 @@ impl AppModel {
             .unwrap_or_else(|| fl!("default-heading"));
         let heading = widget::text::title3(location_name).width(Length::Fill);
 
-        let chevron_btn = widget::button::icon(
-            widget::icon::from_name("go-next-symbolic").symbolic(true),
-        )
-        .on_press(Message::AddLocation);
+        let chevron_btn =
+            widget::button::icon(widget::icon::from_name("go-next-symbolic").symbolic(true))
+                .on_press(Message::AddLocation);
 
-        let refresh_btn = widget::button::icon(
-            widget::icon::from_name("view-refresh-symbolic").symbolic(true),
-        )
-        .on_press(Message::FetchWeather);
+        let refresh_btn =
+            widget::button::icon(widget::icon::from_name("view-refresh-symbolic").symbolic(true))
+                .on_press(Message::FetchWeather);
 
-        let header_row =
-            cosmic::iced::widget::row![heading, chevron_btn, refresh_btn]
-                .align_y(Alignment::Center)
-                .spacing(8);
+        let header_row = cosmic::iced::widget::row![heading, chevron_btn, refresh_btn]
+            .align_y(Alignment::Center)
+            .spacing(8);
         col = col.push(header_row);
 
         // Alert banner
@@ -837,41 +819,49 @@ impl AppModel {
             // --- Hero section ---
             if let Some(current) = forecast.periods.first() {
                 // Prefer observation data when available, fall back to forecast period
-                let (hero_temp, hero_unit, hero_condition, hero_icon_name, hero_wind, hero_humidity) =
-                    if let Some(obs) = &self.observation {
-                        let temp = obs.temperature.unwrap_or(current.temperature);
-                        let unit = &obs.temperature_unit;
-                        let cond = obs
-                            .condition
-                            .clone()
-                            .unwrap_or_else(|| current.short_forecast.clone());
-                        let icon = obs
-                            .condition
-                            .as_deref()
-                            .map(|c| condition_icon(c, obs.is_daytime))
-                            .unwrap_or_else(|| weather_icon_for_period(current));
-                        let wind = match (&obs.wind_speed, &obs.wind_direction) {
-                            (Some(speed), Some(dir)) => {
-                                Some(fl!("wind-info", speed = speed.as_str(), direction = dir.as_str()))
-                            }
-                            _ => None,
-                        };
-                        (temp, unit.clone(), cond, icon, wind, obs.humidity)
-                    } else {
-                        let wind = fl!(
+                let (
+                    hero_temp,
+                    hero_unit,
+                    hero_condition,
+                    hero_icon_name,
+                    hero_wind,
+                    hero_humidity,
+                ) = if let Some(obs) = &self.observation {
+                    let temp = obs.temperature.unwrap_or(current.temperature);
+                    let unit = &obs.temperature_unit;
+                    let cond = obs
+                        .condition
+                        .clone()
+                        .unwrap_or_else(|| current.short_forecast.clone());
+                    let icon = obs
+                        .condition
+                        .as_deref()
+                        .map(|c| condition_icon(c, obs.is_daytime))
+                        .unwrap_or_else(|| weather_icon_for_period(current));
+                    let wind = match (&obs.wind_speed, &obs.wind_direction) {
+                        (Some(speed), Some(dir)) => Some(fl!(
                             "wind-info",
-                            speed = current.wind_speed.as_str(),
-                            direction = current.wind_direction.as_str()
-                        );
-                        (
-                            current.temperature,
-                            current.temperature_unit.clone(),
-                            current.short_forecast.clone(),
-                            weather_icon_for_period(current),
-                            Some(wind),
-                            None,
-                        )
+                            speed = speed.as_str(),
+                            direction = dir.as_str()
+                        )),
+                        _ => None,
                     };
+                    (temp, unit.clone(), cond, icon, wind, obs.humidity)
+                } else {
+                    let wind = fl!(
+                        "wind-info",
+                        speed = current.wind_speed.as_str(),
+                        direction = current.wind_direction.as_str()
+                    );
+                    (
+                        current.temperature,
+                        current.temperature_unit.clone(),
+                        current.short_forecast.clone(),
+                        weather_icon_for_period(current),
+                        Some(wind),
+                        None,
+                    )
+                };
 
                 let icon = widget::icon::from_name(hero_icon_name)
                     .symbolic(true)
@@ -905,14 +895,11 @@ impl AppModel {
                 }
                 let detail_text = widget::text::body(details.join(" · "));
 
-                let hero_content = cosmic::iced::widget::column![
-                    icon_temp_row,
-                    forecast_text,
-                    detail_text,
-                ]
-                .spacing(4)
-                .padding(12)
-                .width(Length::Fill);
+                let hero_content =
+                    cosmic::iced::widget::column![icon_temp_row, forecast_text, detail_text,]
+                        .spacing(4)
+                        .padding(12)
+                        .width(Length::Fill);
 
                 let hero = widget::layer_container(hero_content)
                     .layer(cosmic::cosmic_theme::Layer::Secondary)
@@ -924,7 +911,9 @@ impl AppModel {
             // --- Hourly forecast (paged with arrow buttons) ---
             if !forecast.hourly_periods.is_empty() {
                 let total = forecast.hourly_periods.len();
-                let offset = self.hourly_offset.min(total.saturating_sub(HOURLY_PAGE_SIZE));
+                let offset = self
+                    .hourly_offset
+                    .min(total.saturating_sub(HOURLY_PAGE_SIZE));
                 let end = (offset + HOURLY_PAGE_SIZE).min(total);
                 let can_prev = offset > 0;
                 let can_next = end < total;
@@ -955,9 +944,7 @@ impl AppModel {
                     };
 
                     let icon_name = weather_icon_for_period(period);
-                    let icon = widget::icon::from_name(icon_name)
-                        .symbolic(true)
-                        .size(24);
+                    let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
 
                     let temp = widget::text::body(format!("{}°", period.temperature));
 
@@ -980,8 +967,7 @@ impl AppModel {
                     {
                         let pct = precip as u32;
                         if has_precip_icon || pct >= 20 {
-                            hour_col = hour_col
-                                .push(widget::text::caption(format!("{}%", pct)));
+                            hour_col = hour_col.push(widget::text::caption(format!("{}%", pct)));
                         }
                     }
 
@@ -1022,12 +1008,9 @@ impl AppModel {
                     let is_expanded = self.expanded_day == Some(i);
 
                     let icon_name = forecast_icon_for_summary(day);
-                    let icon = widget::icon::from_name(icon_name)
-                        .symbolic(true)
-                        .size(24);
+                    let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
 
-                    let name_text =
-                        widget::text::body(day.name.clone()).width(Length::Fill);
+                    let name_text = widget::text::body(day.name.clone()).width(Length::Fill);
 
                     let temp_str = match (day.high, day.low) {
                         (Some(h), Some(l)) => {
@@ -1039,52 +1022,45 @@ impl AppModel {
                     };
                     let temp_text = widget::text::body(temp_str);
 
-                    let row_content =
-                        cosmic::iced::widget::row![icon, name_text, temp_text]
-                            .spacing(8)
-                            .align_y(Alignment::Center)
-                            .padding([6, 4]);
+                    let row_content = cosmic::iced::widget::row![icon, name_text, temp_text]
+                        .spacing(8)
+                        .align_y(Alignment::Center)
+                        .padding([6, 4]);
 
                     let row_btn = widget::button::custom(row_content)
                         .on_press(Message::ToggleDay(i))
                         .width(Length::Fill)
                         .class(cosmic::theme::Button::Custom {
-                            active: Box::new(|_focused, _theme| {
-                                cosmic::widget::button::Style {
-                                    background: None,
-                                    border_width: 0.0,
-                                    border_color: cosmic::iced::Color::TRANSPARENT,
-                                    outline_width: 0.0,
-                                    outline_color: cosmic::iced::Color::TRANSPARENT,
-                                    icon_color: None,
-                                    text_color: None,
-                                    overlay: None,
-                                    shadow_offset: Default::default(),
-                                    border_radius: Default::default(),
-                                }
+                            active: Box::new(|_focused, _theme| cosmic::widget::button::Style {
+                                background: None,
+                                border_width: 0.0,
+                                border_color: cosmic::iced::Color::TRANSPARENT,
+                                outline_width: 0.0,
+                                outline_color: cosmic::iced::Color::TRANSPARENT,
+                                icon_color: None,
+                                text_color: None,
+                                overlay: None,
+                                shadow_offset: Default::default(),
+                                border_radius: Default::default(),
                             }),
-                            disabled: Box::new(|_theme| {
-                                cosmic::widget::button::Style {
-                                    background: None,
-                                    border_width: 0.0,
-                                    border_color: cosmic::iced::Color::TRANSPARENT,
-                                    outline_width: 0.0,
-                                    outline_color: cosmic::iced::Color::TRANSPARENT,
-                                    icon_color: None,
-                                    text_color: None,
-                                    overlay: None,
-                                    shadow_offset: Default::default(),
-                                    border_radius: Default::default(),
-                                }
+                            disabled: Box::new(|_theme| cosmic::widget::button::Style {
+                                background: None,
+                                border_width: 0.0,
+                                border_color: cosmic::iced::Color::TRANSPARENT,
+                                outline_width: 0.0,
+                                outline_color: cosmic::iced::Color::TRANSPARENT,
+                                icon_color: None,
+                                text_color: None,
+                                overlay: None,
+                                shadow_offset: Default::default(),
+                                border_radius: Default::default(),
                             }),
                             hovered: Box::new(|_focused, theme| {
                                 let cosmic = theme.cosmic();
                                 cosmic::widget::button::Style {
-                                    background: Some(
-                                        cosmic::iced::Background::Color(
-                                            cosmic.background.component.hover.into(),
-                                        ),
-                                    ),
+                                    background: Some(cosmic::iced::Background::Color(
+                                        cosmic.background.component.hover.into(),
+                                    )),
                                     overlay: None,
                                     border_width: 0.0,
                                     border_color: cosmic::iced::Color::TRANSPARENT,
@@ -1099,11 +1075,9 @@ impl AppModel {
                             pressed: Box::new(|_focused, theme| {
                                 let cosmic = theme.cosmic();
                                 cosmic::widget::button::Style {
-                                    background: Some(
-                                        cosmic::iced::Background::Color(
-                                            cosmic.background.component.pressed.into(),
-                                        ),
-                                    ),
+                                    background: Some(cosmic::iced::Background::Color(
+                                        cosmic.background.component.pressed.into(),
+                                    )),
                                     overlay: None,
                                     border_width: 0.0,
                                     border_color: cosmic::iced::Color::TRANSPARENT,
@@ -1120,42 +1094,31 @@ impl AppModel {
                     rows = rows.push(row_btn);
 
                     if is_expanded {
-                        let mut detail_col =
-                            cosmic::iced::widget::column![].spacing(4);
+                        let mut detail_col = cosmic::iced::widget::column![].spacing(4);
 
                         let wind = fl!(
                             "wind-info",
                             speed = day.wind_speed.as_str(),
                             direction = day.wind_direction.as_str()
                         );
-                        detail_col =
-                            detail_col.push(widget::text::body(wind));
+                        detail_col = detail_col.push(widget::text::body(wind));
 
                         if let Some(chance) = day.precip_chance {
                             let chance_str = chance.to_string();
-                            let precip = fl!(
-                                "precip-info",
-                                chance = chance_str.as_str()
-                            );
-                            detail_col =
-                                detail_col.push(widget::text::body(precip));
+                            let precip = fl!("precip-info", chance = chance_str.as_str());
+                            detail_col = detail_col.push(widget::text::body(precip));
                         }
 
                         if !day.detailed_forecast.is_empty()
                             && day.detailed_forecast != day.short_forecast
                         {
-                            detail_col = detail_col.push(
-                                widget::text::body(
-                                    day.detailed_forecast.clone(),
-                                ),
-                            );
+                            detail_col =
+                                detail_col.push(widget::text::body(day.detailed_forecast.clone()));
                         }
 
-                        let detail = widget::layer_container(
-                            detail_col.padding([4, 16, 8, 36]),
-                        )
-                        .layer(cosmic::cosmic_theme::Layer::Secondary)
-                        .width(Length::Fill);
+                        let detail = widget::layer_container(detail_col.padding([4, 16, 8, 36]))
+                            .layer(cosmic::cosmic_theme::Layer::Secondary)
+                            .width(Length::Fill);
 
                         rows = rows.push(detail);
                     }
@@ -1176,8 +1139,7 @@ impl AppModel {
                 let time_caption = widget::text::caption(format!("{time_text} ·"));
 
                 if let Some(loc) = self.config.active_location() {
-                    let available =
-                        WeatherSource::available_for(loc.country_code.as_deref());
+                    let available = WeatherSource::available_for(loc.country_code.as_deref());
                     let source_element: Element<'_, Message> = if available.len() > 1 {
                         widget::button::text(loc.source.label())
                             .on_press(Message::SourceSelected)
@@ -1186,12 +1148,9 @@ impl AppModel {
                         widget::text::caption(loc.source.label()).into()
                     };
 
-                    let footer_row = cosmic::iced::widget::row![
-                        time_caption,
-                        source_element,
-                    ]
-                    .align_y(Alignment::Center)
-                    .spacing(4);
+                    let footer_row = cosmic::iced::widget::row![time_caption, source_element,]
+                        .align_y(Alignment::Center)
+                        .spacing(4);
                     col = col.push(footer_row);
                 } else {
                     col = col.push(widget::text::caption(time_text));

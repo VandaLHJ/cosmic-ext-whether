@@ -36,10 +36,7 @@ pub async fn search_location(query: String) -> Result<Vec<SearchResult>, GeoErro
         return Err(GeoError(format!("Nominatim returned {}", resp.status())));
     }
 
-    let results: Vec<SearchResult> = resp
-        .json()
-        .await
-        .map_err(|e| GeoError(e.to_string()))?;
+    let results: Vec<SearchResult> = resp.json().await.map_err(|e| GeoError(e.to_string()))?;
 
     Ok(results)
 }

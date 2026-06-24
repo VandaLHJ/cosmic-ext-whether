@@ -146,7 +146,13 @@ pub async fn fetch_weather(
 
     // Build hourly forecast periods starting from the current hour
     let hourly_periods = if let Some(hourly) = &data.hourly {
-        build_hourly_periods(hourly, unit_str, speed_unit, effective_offset, needs_adjustment)
+        build_hourly_periods(
+            hourly,
+            unit_str,
+            speed_unit,
+            effective_offset,
+            needs_adjustment,
+        )
     } else {
         Vec::new()
     };
@@ -188,10 +194,7 @@ fn build_daily_periods(daily: &OmDaily, unit: &str, speed_unit: &str) -> Vec<For
         let description = wmo_code_description(daily.weather_code[i], true);
         let wind_dir = types::degrees_to_cardinal(daily.wind_direction_10m_dominant[i]);
         let wind_speed = format!("{:.0} {speed_unit}", daily.wind_speed_10m_max[i]);
-        let precip = daily
-            .precipitation_probability_max
-            .get(i)
-            .and_then(|v| *v);
+        let precip = daily.precipitation_probability_max.get(i).and_then(|v| *v);
 
         // Day period
         periods.push(ForecastPeriod {
@@ -203,9 +206,7 @@ fn build_daily_periods(daily: &OmDaily, unit: &str, speed_unit: &str) -> Vec<For
             short_forecast: description.clone(),
             detailed_forecast: description.clone(),
             is_daytime: true,
-            probability_of_precipitation: Some(PrecipValue {
-                value: precip,
-            }),
+            probability_of_precipitation: Some(PrecipValue { value: precip }),
             start_time: Some(format!("{}T12:00:00", daily.time[i])),
         });
 
@@ -225,9 +226,7 @@ fn build_daily_periods(daily: &OmDaily, unit: &str, speed_unit: &str) -> Vec<For
             short_forecast: night_description.clone(),
             detailed_forecast: night_description,
             is_daytime: false,
-            probability_of_precipitation: Some(PrecipValue {
-                value: precip,
-            }),
+            probability_of_precipitation: Some(PrecipValue { value: precip }),
             start_time: Some(format!("{}T00:00:00", daily.time[i])),
         });
     }
@@ -281,10 +280,7 @@ fn build_hourly_periods(
         let description = wmo_code_description(hourly.weather_code[i], is_day);
         let wind_dir = types::degrees_to_cardinal(hourly.wind_direction_10m[i]);
         let wind_speed = format!("{:.0} {speed_unit}", hourly.wind_speed_10m[i]);
-        let precip = hourly
-            .precipitation_probability
-            .get(i)
-            .and_then(|v| *v);
+        let precip = hourly.precipitation_probability.get(i).and_then(|v| *v);
 
         periods.push(ForecastPeriod {
             name: String::new(),
@@ -295,9 +291,7 @@ fn build_hourly_periods(
             short_forecast: description.clone(),
             detailed_forecast: description,
             is_daytime: is_day,
-            probability_of_precipitation: Some(PrecipValue {
-                value: precip,
-            }),
+            probability_of_precipitation: Some(PrecipValue { value: precip }),
             start_time: Some(time_str),
         });
     }
@@ -329,7 +323,6 @@ fn date_to_day_name(date_str: &str, is_first: bool) -> String {
     }
     date_str.to_string()
 }
-
 
 /// Map WMO weather interpretation codes to description strings.
 /// Descriptions are chosen so that `weather_icon_for_period()` in app.rs

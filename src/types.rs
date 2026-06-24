@@ -32,7 +32,6 @@ impl WeatherSource {
             _ => vec![WeatherSource::OpenMeteo],
         }
     }
-
 }
 
 // --- Weather alert types ---

@@ -42,7 +42,10 @@ pub async fn fetch_points(lat: &str, lon: &str) -> Result<(GridInfo, String), Nw
         .map_err(|e| NwsError::Network(e.to_string()))?;
 
     if !resp.status().is_success() {
-        return Err(NwsError::Api(format!("Points API returned {}", resp.status())));
+        return Err(NwsError::Api(format!(
+            "Points API returned {}",
+            resp.status()
+        )));
     }
 
     let points: PointsResponse = resp
@@ -160,7 +163,10 @@ pub async fn fetch_alerts(lat: &str, lon: &str) -> Result<Vec<WeatherAlert>, Nws
         .map_err(|e| NwsError::Network(e.to_string()))?;
 
     if !resp.status().is_success() {
-        return Err(NwsError::Api(format!("Alerts API returned {}", resp.status())));
+        return Err(NwsError::Api(format!(
+            "Alerts API returned {}",
+            resp.status()
+        )));
     }
 
     let alerts: AlertsResponse = resp
@@ -168,7 +174,11 @@ pub async fn fetch_alerts(lat: &str, lon: &str) -> Result<Vec<WeatherAlert>, Nws
         .await
         .map_err(|e| NwsError::Parse(e.to_string()))?;
 
-    Ok(alerts.features.into_iter().map(|f| parse_alert(f.properties)).collect())
+    Ok(alerts
+        .features
+        .into_iter()
+        .map(|f| parse_alert(f.properties))
+        .collect())
 }
 
 /// Fetch the nearest observation station for a grid point.
@@ -254,16 +264,13 @@ async fn fetch_observation(
     }
 
     // NWS observations are always SI (Celsius, km/h, degrees)
-    let temperature = props
-        .temperature
-        .and_then(|q| q.value)
-        .map(|c| {
-            if use_fahrenheit {
-                (c * 9.0 / 5.0 + 32.0).round() as i32
-            } else {
-                c.round() as i32
-            }
-        });
+    let temperature = props.temperature.and_then(|q| q.value).map(|c| {
+        if use_fahrenheit {
+            (c * 9.0 / 5.0 + 32.0).round() as i32
+        } else {
+            c.round() as i32
+        }
+    });
 
     let temperature_unit = if use_fahrenheit { "F" } else { "C" }.to_string();
 
@@ -304,7 +311,15 @@ pub async fn fetch_weather(
     lon: String,
     cached_grid: Option<GridInfo>,
     use_fahrenheit: bool,
-) -> Result<(Forecast, GridInfo, Vec<WeatherAlert>, Option<CurrentObservation>), NwsError> {
+) -> Result<
+    (
+        Forecast,
+        GridInfo,
+        Vec<WeatherAlert>,
+        Option<CurrentObservation>,
+    ),
+    NwsError,
+> {
     let (mut grid, location_name) = if let Some(grid) = cached_grid {
         // Try the forecast with the cached grid; if it fails, re-resolve.
         match fetch_forecast(&grid, use_fahrenheit).await {

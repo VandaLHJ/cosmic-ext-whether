@@ -23,3 +23,4 @@ manage-locations = Manage Locations
 no-saved-locations = No saved locations
 
 alerts-heading = Active Alerts
+source-toggle-tooltip = Select to toggle data source

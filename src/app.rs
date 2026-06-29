@@ -1142,6 +1142,7 @@ impl AppModel {
                     let available = WeatherSource::available_for(loc.country_code.as_deref());
                     let source_element: Element<'_, Message> = if available.len() > 1 {
                         widget::button::text(loc.source.label())
+                            .tooltip(fl!("source-toggle-tooltip"))
                             .on_press(Message::SourceSelected)
                             .into()
                     } else {

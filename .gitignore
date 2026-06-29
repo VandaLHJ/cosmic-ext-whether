@@ -18,3 +18,7 @@
 
 # Misc
 VM-Flatbak-list
+
+# Local tool/editor config (don't rely on global ignore)
+/.claude/settings.local.json
+/.claude/projects/

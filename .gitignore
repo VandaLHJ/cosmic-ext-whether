@@ -3,6 +3,7 @@
 *.swp
 *.swo
 *~
+.cargo
 
 # Flatpak build artifacts
 /.flatpak-builder

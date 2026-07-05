@@ -10,15 +10,13 @@ use cosmic::Element;
 
 static AUTOSIZE_MAIN_ID: LazyLock<widget::Id> = LazyLock::new(|| widget::Id::new("autosize-main"));
 
+use crate::backend;
 use crate::config::{self, WhetherConfig, APP_ID};
 use crate::fl;
 use crate::geocoding;
-use crate::nws;
-use crate::open_meteo;
 use crate::types::{
     condition_icon, format_hour, pair_daily_periods, short_location_name, CurrentObservation,
     FetchState, Forecast, ForecastPeriod, SavedLocation, SearchResult, WeatherAlert, WeatherResult,
-    WeatherSource,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,12 +87,10 @@ pub enum Message {
     SearchResults(Result<Vec<SearchResult>, String>),
     SelectLocation(usize),
 
-    SourceSelected,
     ActivateLocation(usize),
 
     AddLocation,
     RemoveLocation(usize),
-    ToggleSource(usize),
     BackToMain,
     ToggleUnits,
     HourlyPrev,
@@ -313,17 +309,11 @@ impl cosmic::Application for AppModel {
             Message::SelectLocation(i) => {
                 if let Some(result) = self.search_results.get(i) {
                     let country_code = result.address.as_ref().and_then(|a| a.country_code.clone());
-                    let source = if geocoding::is_us_location(result) {
-                        WeatherSource::Nws
-                    } else {
-                        WeatherSource::OpenMeteo
-                    };
                     let location = SavedLocation {
                         name: short_location_name(&result.display_name),
                         lat: result.lat.clone(),
                         lon: result.lon.clone(),
                         cached_grid: None,
-                        source,
                         country_code,
                     };
                     self.config.locations.push(location);
@@ -344,19 +334,6 @@ impl cosmic::Application for AppModel {
                 }
             }
 
-            Message::SourceSelected => {
-                let loc_idx = self.config.active_location_index;
-                if let Some(loc) = self.config.locations.get_mut(loc_idx) {
-                    if WeatherSource::available_for(loc.country_code.as_deref()).len() > 1 {
-                        loc.source = loc.source.toggle();
-                        loc.cached_grid = None;
-                        config::save_config(&self.config_handle, &self.config);
-                        // Keep old forecast visible while new data loads
-                        self.fetch_state = FetchState::Loading;
-                        return fetch_weather_task(&self.config);
-                    }
-                }
-            }
             Message::ActivateLocation(idx) => {
                 if idx < self.config.locations.len() && idx != self.config.active_location_index {
                     self.config.active_location_index = idx;
@@ -418,19 +395,6 @@ impl cosmic::Application for AppModel {
                         .map(|l| l.name.clone())
                         .collect();
                     config::save_config(&self.config_handle, &self.config);
-                }
-            }
-            Message::ToggleSource(idx) => {
-                if let Some(loc) = self.config.locations.get_mut(idx) {
-                    if WeatherSource::available_for(loc.country_code.as_deref()).len() > 1 {
-                        loc.source = loc.source.toggle();
-                        loc.cached_grid = None;
-                        config::save_config(&self.config_handle, &self.config);
-                        if idx == self.config.active_location_index {
-                            self.fetch_state = FetchState::Loading;
-                            return fetch_weather_task(&self.config);
-                        }
-                    }
                 }
             }
             Message::HourlyPrev => {
@@ -512,43 +476,17 @@ fn fetch_weather_task(config: &WhetherConfig) -> Task<Message> {
     if let Some(loc) = config.active_location() {
         let lat = loc.lat.clone();
         let lon = loc.lon.clone();
-        let cached_grid = loc.cached_grid.clone();
         let use_fahrenheit = config.use_fahrenheit;
-        let source = loc.source;
+        let country_code = loc.country_code.clone();
+        let cached_grid = loc.cached_grid.clone();
         let name = loc.name.clone();
 
-        match source {
-            WeatherSource::Nws => Task::perform(
-                nws::fetch_weather(lat, lon, cached_grid, use_fahrenheit),
-                |result| {
-                    cosmic::Action::App(Message::WeatherFetched(Box::new(
-                        result
-                            .map(|(forecast, grid, alerts, observation)| WeatherResult {
-                                forecast,
-                                cached_grid: Some(grid),
-                                alerts,
-                                observation,
-                            })
-                            .map_err(|e| e.to_string()),
-                    )))
-                },
-            ),
-            WeatherSource::OpenMeteo => Task::perform(
-                open_meteo::fetch_weather(lat, lon, name, use_fahrenheit),
-                |result| {
-                    cosmic::Action::App(Message::WeatherFetched(Box::new(
-                        result
-                            .map(|(forecast, observation)| WeatherResult {
-                                forecast,
-                                cached_grid: None,
-                                alerts: Vec::new(),
-                                observation,
-                            })
-                            .map_err(|e| e.to_string()),
-                    )))
-                },
-            ),
-        }
+        // Single adapter entry point: weathervane + US-only NWS shim, all mapped
+        // into WeatherResult inside backend::fetch_weather.
+        Task::perform(
+            backend::fetch_weather(lat, lon, use_fahrenheit, country_code, cached_grid, name),
+            |result| cosmic::Action::App(Message::WeatherFetched(Box::new(result))),
+        )
     } else {
         Task::none()
     }
@@ -666,21 +604,8 @@ impl AppModel {
 
                 let is_active = i == self.config.active_location_index;
 
-                let source_label = loc.source.label();
-                let source_line: Element<'_, Message> =
-                    if WeatherSource::available_for(loc.country_code.as_deref()).len() > 1 {
-                        widget::button::text(source_label)
-                            .on_press(Message::ToggleSource(i))
-                            .into()
-                    } else {
-                        widget::text::caption(source_label).into()
-                    };
-
-                let label_col = cosmic::iced::widget::column![
-                    widget::text::body(loc.name.clone()),
-                    source_line,
-                ]
-                .spacing(2);
+                let label_col =
+                    cosmic::iced::widget::column![widget::text::body(loc.name.clone()),].spacing(2);
 
                 let selected = if is_active { Some(i) } else { None };
                 let location_radio =
@@ -1127,7 +1052,7 @@ impl AppModel {
                 col = col.push(rows);
             }
 
-            // --- Footer: "Updated X min ago · Source" ---
+            // --- Footer: "Updated X min ago" ---
             if let Some(updated) = self.last_updated {
                 let elapsed = updated.elapsed().as_secs() / 60;
                 let time_text = if elapsed == 0 {
@@ -1136,26 +1061,7 @@ impl AppModel {
                     let mins = elapsed.to_string();
                     fl!("updated-ago", minutes = mins.as_str())
                 };
-                let time_caption = widget::text::caption(format!("{time_text} ·"));
-
-                if let Some(loc) = self.config.active_location() {
-                    let available = WeatherSource::available_for(loc.country_code.as_deref());
-                    let source_element: Element<'_, Message> = if available.len() > 1 {
-                        widget::button::text(loc.source.label())
-                            .tooltip(fl!("source-toggle-tooltip"))
-                            .on_press(Message::SourceSelected)
-                            .into()
-                    } else {
-                        widget::text::caption(loc.source.label()).into()
-                    };
-
-                    let footer_row = cosmic::iced::widget::row![time_caption, source_element,]
-                        .align_y(Alignment::Center)
-                        .spacing(4);
-                    col = col.push(footer_row);
-                } else {
-                    col = col.push(widget::text::caption(time_text));
-                }
+                col = col.push(widget::text::caption(time_text));
             }
         } else if matches!(self.fetch_state, FetchState::Idle) {
             let text = fl!("no-location");

@@ -1,39 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-// --- Weather source selection ---
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum WeatherSource {
-    #[default]
-    Nws,
-    OpenMeteo,
-}
-
-impl WeatherSource {
-    pub fn label(&self) -> &'static str {
-        match self {
-            WeatherSource::Nws => "NWS",
-            WeatherSource::OpenMeteo => "Open-Meteo",
-        }
-    }
-
-    pub fn toggle(&self) -> Self {
-        match self {
-            WeatherSource::Nws => WeatherSource::OpenMeteo,
-            WeatherSource::OpenMeteo => WeatherSource::Nws,
-        }
-    }
-
-    /// Returns the list of weather sources valid for a given country code.
-    /// `None` (legacy/unknown) is treated as US to preserve migrated v3 locations.
-    pub fn available_for(country_code: Option<&str>) -> Vec<WeatherSource> {
-        match country_code {
-            Some("us") | None => vec![WeatherSource::Nws, WeatherSource::OpenMeteo],
-            _ => vec![WeatherSource::OpenMeteo],
-        }
-    }
-}
-
 // --- Weather alert types ---
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,23 +19,6 @@ pub struct WeatherAlert {
     pub severity: AlertSeverity,
 }
 
-#[derive(Deserialize)]
-pub struct AlertsResponse {
-    pub features: Vec<AlertFeature>,
-}
-
-#[derive(Deserialize)]
-pub struct AlertFeature {
-    pub properties: AlertProperties,
-}
-
-#[derive(Deserialize)]
-pub struct AlertProperties {
-    pub event: String,
-    pub headline: Option<String>,
-    pub severity: String,
-}
-
 /// Unified weather result from either NWS or Open-Meteo.
 #[derive(Debug, Clone)]
 pub struct WeatherResult {
@@ -77,6 +26,7 @@ pub struct WeatherResult {
     pub cached_grid: Option<GridInfo>,
     pub alerts: Vec<WeatherAlert>,
     pub observation: Option<CurrentObservation>,
+    pub air_quality: Option<AirQuality>,
 }
 
 /// Real-time observation data from the nearest station (NWS) or current block (Open-Meteo).
@@ -89,6 +39,26 @@ pub struct CurrentObservation {
     pub wind_direction: Option<String>,
     pub humidity: Option<i32>,
     pub is_daytime: bool,
+    pub feels_like: Option<i32>,
+    pub dew_point: Option<i32>,
+    pub uv_index: Option<f32>,
+    pub pressure: Option<f32>, //hPa; PressureUnit conversion is T5
+    pub cloud_cover: Option<i32>,
+    pub wind_gusts: Option<String>, // formatted like wind_speed
+    pub visibility: Option<f32>,    // meters (raw); convert in T4
+}
+
+/// AirQuality struct mapped from weathervane's AirQualityData
+#[derive(Debug, Clone)]
+#[allow(dead_code)] // unshown until T4
+pub struct AirQuality {
+    pub aqi: i32,
+    pub category: String, // display label from AqiCategory (see backend helper)
+    pub pm2_5: f32,
+    pub pm10: f32,
+    pub ozone: f32,
+    pub no2: f32,
+    pub co: f32,
 }
 
 // --- NWS API response types ---
@@ -150,45 +120,6 @@ pub struct PrecipValue {
     pub value: Option<f64>,
 }
 
-// --- NWS station / observation types ---
-
-#[derive(Deserialize)]
-pub struct StationsResponse {
-    pub features: Vec<StationFeature>,
-}
-
-#[derive(Deserialize)]
-pub struct StationFeature {
-    pub properties: StationProperties,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct StationProperties {
-    pub station_identifier: String,
-}
-
-#[derive(Deserialize)]
-pub struct ObservationResponse {
-    pub properties: ObservationProperties,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ObservationProperties {
-    pub temperature: Option<QuantitativeValue>,
-    pub wind_speed: Option<QuantitativeValue>,
-    pub wind_direction: Option<QuantitativeValue>,
-    pub relative_humidity: Option<QuantitativeValue>,
-    pub text_description: Option<String>,
-    pub timestamp: Option<String>,
-}
-
-#[derive(Deserialize)]
-pub struct QuantitativeValue {
-    pub value: Option<f64>,
-}
-
 // --- App domain types ---
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -198,8 +129,6 @@ pub struct SavedLocation {
     pub lon: String,
     #[serde(default)]
     pub cached_grid: Option<GridInfo>,
-    #[serde(default)]
-    pub source: WeatherSource,
     #[serde(default)]
     pub country_code: Option<String>,
 }
@@ -214,10 +143,17 @@ pub struct GridInfo {
 }
 
 #[derive(Debug, Clone)]
+pub struct DailySun {
+    pub date: String,    // "2026-07-04"
+    pub sunrise: String, // local naive ISO
+    pub sunset: String,
+}
+#[derive(Debug, Clone)]
 pub struct Forecast {
     pub location_name: String,
     pub periods: Vec<ForecastPeriod>,
     pub hourly_periods: Vec<ForecastPeriod>,
+    pub sun_times: Vec<DailySun>,
 }
 
 #[derive(Debug, Clone)]
@@ -332,16 +268,6 @@ pub struct SearchResult {
 pub struct NominatimAddress {
     #[serde(default)]
     pub country_code: Option<String>,
-}
-
-/// Convert wind direction in degrees to a cardinal direction string.
-pub fn degrees_to_cardinal(degrees: f64) -> String {
-    const DIRECTIONS: &[&str] = &[
-        "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
-        "NW", "NNW",
-    ];
-    let idx = ((degrees + 11.25) / 22.5) as usize % 16;
-    DIRECTIONS[idx].to_string()
 }
 
 /// Map a weather condition string and day/night flag to a symbolic icon name.

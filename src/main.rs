@@ -1,9 +1,9 @@
 mod app;
+pub mod backend;
 mod config;
 mod geocoding;
 mod i18n;
 mod nws;
-mod open_meteo;
 mod types;
 
 fn main() -> cosmic::iced::Result {

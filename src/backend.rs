@@ -261,6 +261,7 @@ fn map_air_quality(a: weathervane::AirQualityData) -> AirQuality {
         ozone: a.ozone,
         no2: a.nitrogen_dioxide,
         co: a.carbon_monoxide,
+        severity: aqi_severity_index(&a.category),
     }
 }
 
@@ -282,6 +283,18 @@ fn aqi_category_label(a: weathervane::AqiCategory) -> String {
         AqiCategory::Eu(Eu::ExtremelyPoor) => "Extremely Poor",
     }
     .to_string()
+}
+
+fn aqi_severity_index(c: &weathervane::AqiCategory) -> u8 {
+    use weathervane::{AqiCategory, EuAqiCategory as Eu, UsAqiCategory as Us};
+    match c {
+        AqiCategory::Us(Us::Good) | AqiCategory::Eu(Eu::Good) => 0,
+        AqiCategory::Us(Us::Moderate) | AqiCategory::Eu(Eu::Moderate) => 1,
+        AqiCategory::Us(Us::UnhealthySensitive) | AqiCategory::Eu(Eu::Fair) => 2,
+        AqiCategory::Us(Us::Unhealthy) | AqiCategory::Eu(Eu::Poor) => 3,
+        AqiCategory::Us(Us::VeryUnhealthy) | AqiCategory::Eu(Eu::VeryPoor) => 4,
+        AqiCategory::Us(Us::Hazardous) | AqiCategory::Eu(Eu::ExtremelyPoor) => 5,
+    }
 }
 
 /// Human-readable label for a weathervane condition. Kept keyword-compatible

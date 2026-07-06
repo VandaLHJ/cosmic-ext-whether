@@ -59,6 +59,7 @@ pub struct AirQuality {
     pub ozone: f32,
     pub no2: f32,
     pub co: f32,
+    pub severity: u8, // 0..=5, best-to-worst; drives the chip tint
 }
 
 // --- NWS API response types ---

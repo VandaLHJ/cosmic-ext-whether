@@ -6,6 +6,7 @@ stale-data = Showing cached data (update failed)
 no-location = No location set
 
 wind-info = Wind: {$speed} {$direction}
+wind-gusting = {$wind}, gusting to {$gust}
 precip-info = Precipitation: {$chance}%
 humidity-info = Humidity: {$humidity}%
 
@@ -24,3 +25,6 @@ no-saved-locations = No saved locations
 
 alerts-heading = Active Alerts
 source-toggle-tooltip = Select to toggle data source
+
+feels-like = Feels like {$temp}
+uv-info = UV: {$value} {$level}

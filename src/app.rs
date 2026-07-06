@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use cosmic::app::{Core, Task};
 use cosmic::iced::core::window;
 use cosmic::iced::window::Id;
-use cosmic::iced::{Alignment, Length, Rectangle, Subscription};
+use cosmic::iced::{Alignment, Color, Length, Rectangle, Subscription};
 use cosmic::surface::action::{app_popup, destroy_popup};
 use cosmic::widget;
 use cosmic::Element;
@@ -15,8 +15,9 @@ use crate::config::{self, WhetherConfig, APP_ID};
 use crate::fl;
 use crate::geocoding;
 use crate::types::{
-    condition_icon, format_hour, pair_daily_periods, short_location_name, CurrentObservation,
-    FetchState, Forecast, ForecastPeriod, SavedLocation, SearchResult, WeatherAlert, WeatherResult,
+    condition_icon, format_hour, pair_daily_periods, short_location_name, AirQuality,
+    CurrentObservation, FetchState, Forecast, ForecastPeriod, SavedLocation, SearchResult,
+    WeatherAlert, WeatherResult,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,6 +30,8 @@ pub enum Page {
 pub struct AppModel {
     core: Core,
     popup: Option<Id>,
+    air_quality: Option<AirQuality>,
+    current_expanded: bool,
     config: WhetherConfig,
     config_handle: Option<cosmic::cosmic_config::Config>,
     forecast: Option<Forecast>,
@@ -55,6 +58,8 @@ impl Default for AppModel {
         Self {
             core: Core::default(),
             popup: None,
+            air_quality: None,
+            current_expanded: false,
             config: WhetherConfig::default(),
             config_handle: None,
             forecast: None,
@@ -96,6 +101,7 @@ pub enum Message {
     HourlyPrev,
     HourlyNext,
     ToggleDay(usize),
+    ToggleCurrentMore,
     ConfigChanged(WhetherConfig),
 }
 
@@ -256,6 +262,7 @@ impl cosmic::Application for AppModel {
 
                     self.alerts = result.alerts;
                     self.observation = result.observation;
+                    self.air_quality = result.air_quality;
                     self.hourly_offset = 0;
                     self.expanded_day = None;
                     self.forecast = Some(result.forecast);
@@ -329,6 +336,7 @@ impl cosmic::Application for AppModel {
                     self.search_results.clear();
                     self.search_input.clear();
                     self.search_done = false;
+                    self.current_expanded = false;
                     self.fetch_state = FetchState::Loading;
                     return fetch_weather_task(&self.config);
                 }
@@ -347,6 +355,8 @@ impl cosmic::Application for AppModel {
                     self.page = Page::Main;
                     self.forecast = None;
                     self.observation = None;
+                    self.air_quality = None;
+                    self.current_expanded = false;
                     self.alerts.clear();
                     self.fetch_state = FetchState::Loading;
                     return fetch_weather_task(&self.config);
@@ -356,6 +366,7 @@ impl cosmic::Application for AppModel {
                 self.page = Page::Locations;
                 self.search_results.clear();
                 self.search_input.clear();
+                self.current_expanded = false;
                 self.search_done = false;
                 self.search_error = None;
             }
@@ -374,6 +385,8 @@ impl cosmic::Application for AppModel {
                         self.config.active_location_index = 0;
                         self.forecast = None;
                         self.observation = None;
+                        self.air_quality = None;
+                        self.current_expanded = false;
                         self.alerts.clear();
                         self.fetch_state = FetchState::Loading;
                         self.location_names = self
@@ -408,6 +421,9 @@ impl cosmic::Application for AppModel {
                     .unwrap_or(0);
                 let max_offset = total.saturating_sub(HOURLY_PAGE_SIZE);
                 self.hourly_offset = (self.hourly_offset + HOURLY_PAGE_SIZE).min(max_offset);
+            }
+            Message::ToggleCurrentMore => {
+                self.current_expanded = !self.current_expanded;
             }
             Message::ToggleDay(idx) => {
                 if self.expanded_day == Some(idx) {
@@ -751,6 +767,7 @@ impl AppModel {
                     hero_icon_name,
                     hero_wind,
                     hero_humidity,
+                    hero_feels_like,
                 ) = if let Some(obs) = &self.observation {
                     let temp = obs.temperature.unwrap_or(current.temperature);
                     let unit = &obs.temperature_unit;
@@ -771,7 +788,15 @@ impl AppModel {
                         )),
                         _ => None,
                     };
-                    (temp, unit.clone(), cond, icon, wind, obs.humidity)
+                    (
+                        temp,
+                        unit.clone(),
+                        cond,
+                        icon,
+                        wind,
+                        obs.humidity,
+                        obs.feels_like,
+                    )
                 } else {
                     let wind = fl!(
                         "wind-info",
@@ -784,7 +809,8 @@ impl AppModel {
                         current.short_forecast.clone(),
                         weather_icon_for_period(current),
                         Some(wind),
-                        None,
+                        None, // humidity
+                        None, // feels_like
                     )
                 };
 
@@ -801,30 +827,114 @@ impl AppModel {
                     .spacing(12)
                     .align_y(Alignment::Center);
 
-                let forecast_text = widget::text::body(hero_condition);
+                let condition_line = match hero_feels_like {
+                    Some(f) => format!(
+                        "{hero_condition}  ·  {}",
+                        fl!("feels-like", temp = format!("{f}°{hero_unit}"))
+                    ),
+                    None => hero_condition,
+                };
+                let forecast_text = widget::text::body(condition_line);
 
-                // Detail line: join available items with ·
-                let mut details = Vec::new();
+                let hero_uv_index = self.observation.as_ref().and_then(|o| o.uv_index);
+                let hero_wind_gusts = self.observation.as_ref().and_then(|o| o.wind_gusts.clone());
+
+                let mut hero_content = cosmic::iced::widget::column![icon_temp_row, forecast_text]
+                    .spacing(6)
+                    .padding(12)
+                    .width(Length::Fill);
+
+                // Wind (+ optional gusts, inline)
                 if let Some(wind) = hero_wind {
-                    details.push(wind);
+                    let line = match hero_wind_gusts {
+                        Some(g) => fl!("wind-gusting", wind = wind.as_str(), gust = g.as_str()),
+                        None => wind,
+                    };
+                    hero_content = hero_content.push(widget::text::body(line));
                 }
-                // Precip from forecast period (observations don't carry this)
-                if let Some(precip) = &current.probability_of_precipitation {
-                    let chance = precip.value.unwrap_or(0.0) as i32;
-                    let chance_str = chance.to_string();
-                    details.push(fl!("precip-info", chance = chance_str.as_str()));
-                }
-                if let Some(humidity) = hero_humidity {
-                    let h = humidity.to_string();
-                    details.push(fl!("humidity-info", humidity = h.as_str()));
-                }
-                let detail_text = widget::text::body(details.join(" · "));
 
-                let hero_content =
-                    cosmic::iced::widget::column![icon_temp_row, forecast_text, detail_text,]
-                        .spacing(4)
-                        .padding(12)
-                        .width(Length::Fill);
+                // Precipitation · Humidity (single line)
+                let mut ph: Vec<String> = Vec::new();
+                if let Some(p) = &current.probability_of_precipitation {
+                    let chance = (p.value.unwrap_or(0.0) as i32).to_string();
+                    ph.push(fl!("precip-info", chance = chance.as_str()));
+                }
+                if let Some(h) = hero_humidity {
+                    let h = h.to_string();
+                    ph.push(fl!("humidity-info", humidity = h.as_str()));
+                }
+                if !ph.is_empty() {
+                    hero_content = hero_content.push(widget::text::body(ph.join("  ·  ")));
+                }
+
+                // AQI + UV (health line). The common case is a single plain-text line,
+                // built the same way as the precip·humidity line above so the "  ·  "
+                // separator renders identically across fonts/themes. Two cases fall back
+                // to a row: a colored AQI pill (Unhealthy+) and/or a bold UV word (Extreme).
+                let uv_text: Option<String> = hero_uv_index.filter(|u| *u >= 3.0).map(|u| {
+                    let value = (u.round() as i32).to_string();
+                    fl!("uv-info", value = value.as_str(), level = uv_level(u))
+                });
+                let uv_extreme = hero_uv_index.is_some_and(|u| u >= 11.0);
+                let aqi_pill = self.air_quality.as_ref().is_some_and(|aq| aq.severity >= 3);
+
+                if aqi_pill || uv_extreme {
+                    let mut health = cosmic::iced::widget::row![]
+                        .spacing(8)
+                        .align_y(Alignment::Center);
+                    let mut has_left = false;
+                    if let Some(aq) = self.air_quality.as_ref() {
+                        let label = format!("AQI: {} {}", aq.aqi, aq.category);
+                        let el: Element<'_, Message> = if aq.severity >= 3 {
+                            let sev = aq.severity;
+                            widget::container(widget::text::body(label))
+                                .padding([2, 8])
+                                .class(cosmic::theme::Container::custom(move |theme| {
+                                    let (bg, fg) = aqi_style(sev, theme);
+                                    cosmic::widget::container::Style {
+                                        icon_color: None,
+                                        text_color: Some(fg),
+                                        background: Some(cosmic::iced::Background::Color(bg)),
+                                        border: cosmic::iced::Border {
+                                            radius: theme.cosmic().radius_s().into(),
+                                            ..Default::default()
+                                        },
+                                        shadow: cosmic::iced::Shadow::default(),
+                                        snap: true,
+                                    }
+                                }))
+                                .into()
+                        } else {
+                            widget::text::body(label).into()
+                        };
+                        health = health.push(el);
+                        has_left = true;
+                    }
+                    if let Some(uv) = uv_text {
+                        if has_left {
+                            health = health.push(widget::text::body("·"));
+                        }
+                        let uv_el: Element<'_, Message> = if uv_extreme {
+                            widget::text::body(uv).font(cosmic::font::bold()).into()
+                        } else {
+                            widget::text::body(uv).into()
+                        };
+                        health = health.push(uv_el);
+                    }
+                    let health: Element<'_, Message> = health.into();
+                    hero_content = hero_content.push(health);
+                } else {
+                    let mut items: Vec<String> = Vec::new();
+                    if let Some(aq) = self.air_quality.as_ref() {
+                        items.push(format!("AQI: {} {}", aq.aqi, aq.category));
+                    }
+                    if let Some(uv) = uv_text {
+                        items.push(uv);
+                    }
+                    if !items.is_empty() {
+                        hero_content = hero_content.push(widget::text::body(items.join("  ·  ")));
+                    }
+                }
 
                 let hero = widget::layer_container(hero_content)
                     .layer(cosmic::cosmic_theme::Layer::Secondary)
@@ -1074,4 +1184,67 @@ impl AppModel {
 
 fn forecast_icon_for_summary(day: &crate::types::DaySummary) -> &'static str {
     condition_icon(&day.short_forecast, day.is_daytime)
+}
+
+// AQI loud tier (bands 3-5) - (background, text). The quiet tier (0-2) blends into
+// the card's Secondary surface via the theme (see aqi_style), so it reads as plain
+// text and only "grows in" a colored pill as severity rises.
+const AQI_FILL_LIGHT: [(Color, Color); 3] = [
+    (
+        Color::from_rgb8(0xd2, 0x44, 0x44),
+        Color::from_rgb8(0xff, 0xff, 0xff),
+    ), // 3 Unhealthy/Poor
+    (
+        Color::from_rgb8(0x8f, 0x3f, 0x97),
+        Color::from_rgb8(0xff, 0xff, 0xff),
+    ), // 4 Very Unhealthy
+    (
+        Color::from_rgb8(0x72, 0x2a, 0x35),
+        Color::from_rgb8(0xff, 0xff, 0xff),
+    ), // 5 Hazardous
+];
+
+const AQI_FILL_DARK: [(Color, Color); 3] = [
+    (
+        Color::from_rgb8(0xb8, 0x3f, 0x3f),
+        Color::from_rgb8(0xff, 0xff, 0xff),
+    ),
+    (
+        Color::from_rgb8(0x94, 0x4a, 0x9c),
+        Color::from_rgb8(0xff, 0xff, 0xff),
+    ),
+    (
+        Color::from_rgb8(0x8a, 0x3a, 0x48),
+        Color::from_rgb8(0xff, 0xff, 0xff),
+    ),
+];
+
+fn aqi_style(severity: u8, theme: &cosmic::Theme) -> (Color, Color) {
+    let cosmic = theme.cosmic();
+    if severity >= 3 {
+        let table = if cosmic.is_dark {
+            &AQI_FILL_DARK
+        } else {
+            &AQI_FILL_LIGHT
+        };
+        table[(severity as usize - 3).min(2)]
+    } else {
+        // Quiet tier: blend into the Secondary surface + normal text -> plain-text look
+        (cosmic.secondary.base.into(), cosmic.secondary.on.into())
+    }
+}
+
+// TODO(i18n): route uv levels through fl! (uv-level-* keys)
+fn uv_level(uv: f32) -> &'static str {
+    if uv < 3.0 {
+        "Low" // not reached (caller gates at >=3.0), but keeps the fn total
+    } else if uv < 6.0 {
+        "Moderate"
+    } else if uv < 8.0 {
+        "High"
+    } else if uv < 11.0 {
+        "Very High"
+    } else {
+        "Extreme"
+    }
 }

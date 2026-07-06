@@ -827,112 +827,136 @@ impl AppModel {
                     .spacing(12)
                     .align_y(Alignment::Center);
 
-                let condition_line = match hero_feels_like {
-                    Some(f) => format!(
-                        "{hero_condition}  ·  {}",
-                        fl!("feels-like", temp = format!("{f}°{hero_unit}"))
-                    ),
-                    None => hero_condition,
-                };
-                let forecast_text = widget::text::body(condition_line);
-
                 let hero_uv_index = self.observation.as_ref().and_then(|o| o.uv_index);
                 let hero_wind_gusts = self.observation.as_ref().and_then(|o| o.wind_gusts.clone());
+                let hero_wind_speed = self.observation.as_ref().and_then(|o| o.wind_speed.clone());
+                let hero_wind_dir = self
+                    .observation
+                    .as_ref()
+                    .and_then(|o| o.wind_direction.clone());
 
-                let mut hero_content = cosmic::iced::widget::column![icon_temp_row, forecast_text]
-                    .spacing(6)
+                // Muted ink for labels + separators (theme text color at 0.7 alpha).
+                // Values render at full strength; the receding labels carry the hierarchy
+                // with no bold anywhere (MG2). Escalations still override: AQI color pill
+                // at Unhealthy+, bold UV word at Extreme.
+                // TODO(i18n): hero labels are literal English here — route through fl! in
+                //   the sweep (orphans: feels-like, wind-gusting, precip-info,
+                //   humidity-info, uv-info; ", gusting to" is inline).
+                let mut muted: Color = cosmic::theme::active().cosmic().background.on.into();
+                muted.a = 0.7;
+
+                let mut hero_content = cosmic::iced::widget::column![icon_temp_row]
+                    .spacing(2)
                     .padding(12)
                     .width(Length::Fill);
 
-                // Wind (+ optional gusts, inline)
-                if let Some(wind) = hero_wind {
-                    let line = match hero_wind_gusts {
-                        Some(g) => fl!("wind-gusting", wind = wind.as_str(), gust = g.as_str()),
-                        None => wind,
-                    };
-                    hero_content = hero_content.push(widget::text::body(line));
+                // Condition · Feels like
+                let mut cond = vec![(String::new(), hero_condition)];
+                if let Some(f) = hero_feels_like {
+//                    cond.push(("Feels like".to_string(), format!("{f}°{hero_unit}")));
+                    cond.push((String::new(), format!("Feels like {f}°{hero_unit}")))
+                }
+                hero_content = hero_content.push(stat_line(muted, cond));
+
+
+
+
+                // Wind (+ optional gusts)
+                if let (Some(speed), Some(dir)) = (&hero_wind_speed, &hero_wind_dir) {
+                    let mut value = format!("{speed} {dir}");
+                    if let Some(g) = &hero_wind_gusts {
+                        value.push_str(&format!(", gusting to {g}"));
+                    }
+                    hero_content =
+                        hero_content.push(stat_line(muted, vec![("Wind".to_string(), value)]));
+                } else if let Some(wind) = hero_wind {
+                    // Fallback (no obs wind components): show the pre-formatted string as-is
+                    hero_content = hero_content.push(stat_line(muted, vec![(String::new(), wind)]));
                 }
 
-                // Precipitation · Humidity (single line)
-                let mut ph: Vec<String> = Vec::new();
+                // Precipitation · Humidity
+                let mut ph: Vec<(String, String)> = Vec::new();
                 if let Some(p) = &current.probability_of_precipitation {
                     let chance = (p.value.unwrap_or(0.0) as i32).to_string();
-                    ph.push(fl!("precip-info", chance = chance.as_str()));
+                    ph.push(("Precipitation".to_string(), format!("{chance}%")));
                 }
                 if let Some(h) = hero_humidity {
-                    let h = h.to_string();
-                    ph.push(fl!("humidity-info", humidity = h.as_str()));
+                    ph.push(("Humidity".to_string(), format!("{h}%")));
                 }
                 if !ph.is_empty() {
-                    hero_content = hero_content.push(widget::text::body(ph.join("  ·  ")));
+                    hero_content = hero_content.push(stat_line(muted, ph));
                 }
 
-                // AQI + UV (health line). The common case is a single plain-text line,
-                // built the same way as the precip·humidity line above so the "  ·  "
-                // separator renders identically across fonts/themes. Two cases fall back
-                // to a row: a colored AQI pill (Unhealthy+) and/or a bold UV word (Extreme).
-                let uv_text: Option<String> = hero_uv_index.filter(|u| *u >= 3.0).map(|u| {
-                    let value = (u.round() as i32).to_string();
-                    fl!("uv-info", value = value.as_str(), level = uv_level(u))
-                });
-                let uv_extreme = hero_uv_index.is_some_and(|u| u >= 11.0);
-                let aqi_pill = self.air_quality.as_ref().is_some_and(|aq| aq.severity >= 3);
+                // AQI + UV (health line). Muted labels + values like the other lines;
+                // escalations override: colored pill at Unhealthy+ (forces a row), bold
+                // value at Extreme UV (a bold span — no row needed).
+                let uv: Option<(String, bool)> = hero_uv_index
+                    .filter(|u| *u >= 3.0)
+                    .map(|u| (format!("{} {}", u.round() as i32, uv_level(u)), u >= 11.0));
+                let aqi = self.air_quality.as_ref();
 
-                if aqi_pill || uv_extreme {
-                    let mut health = cosmic::iced::widget::row![]
+                if aqi.is_some_and(|a| a.severity >= 3) {
+                    let a = aqi.unwrap();
+                    let sev = a.severity;
+                    let label = format!("AQI: {} {}", a.aqi, a.category);
+                    let pill: Element<'_, Message> = widget::container(widget::text::body(label))
+                        .padding([2, 8])
+                        .class(cosmic::theme::Container::custom(move |theme| {
+                            let (bg, fg) = aqi_style(sev, theme);
+                            cosmic::widget::container::Style {
+                                icon_color: None,
+                                text_color: Some(fg),
+                                background: Some(cosmic::iced::Background::Color(bg)),
+                                border: cosmic::iced::Border {
+                                    radius: theme.cosmic().radius_s().into(),
+                                    ..Default::default()
+                                },
+                                shadow: cosmic::iced::Shadow::default(),
+                                snap: true,
+                            }
+                        }))
+                        .into();
+                    let mut health = cosmic::iced::widget::row![pill]
                         .spacing(8)
                         .align_y(Alignment::Center);
-                    let mut has_left = false;
-                    if let Some(aq) = self.air_quality.as_ref() {
-                        let label = format!("AQI: {} {}", aq.aqi, aq.category);
-                        let el: Element<'_, Message> = if aq.severity >= 3 {
-                            let sev = aq.severity;
-                            widget::container(widget::text::body(label))
-                                .padding([2, 8])
-                                .class(cosmic::theme::Container::custom(move |theme| {
-                                    let (bg, fg) = aqi_style(sev, theme);
-                                    cosmic::widget::container::Style {
-                                        icon_color: None,
-                                        text_color: Some(fg),
-                                        background: Some(cosmic::iced::Background::Color(bg)),
-                                        border: cosmic::iced::Border {
-                                            radius: theme.cosmic().radius_s().into(),
-                                            ..Default::default()
-                                        },
-                                        shadow: cosmic::iced::Shadow::default(),
-                                        snap: true,
-                                    }
-                                }))
-                                .into()
-                        } else {
-                            widget::text::body(label).into()
-                        };
-                        health = health.push(el);
-                        has_left = true;
-                    }
-                    if let Some(uv) = uv_text {
-                        if has_left {
-                            health = health.push(widget::text::body("·"));
+                    if let Some((uvs, extreme)) = uv {
+                        let mut uv_span = cosmic::iced::widget::span::<(), _>(uvs);
+                        if extreme {
+                            uv_span = uv_span.font(cosmic::font::bold());
                         }
-                        let uv_el: Element<'_, Message> = if uv_extreme {
-                            widget::text::body(uv).font(cosmic::font::bold()).into()
-                        } else {
-                            widget::text::body(uv).into()
-                        };
+                        let uv_el: Element<'_, Message> = cosmic::iced::widget::rich_text([
+                            cosmic::iced::widget::span::<(), _>("·  UV  ").color(muted),
+                            uv_span,
+                        ])
+                        .into();
                         health = health.push(uv_el);
                     }
                     let health: Element<'_, Message> = health.into();
                     hero_content = hero_content.push(health);
                 } else {
-                    let mut items: Vec<String> = Vec::new();
-                    if let Some(aq) = self.air_quality.as_ref() {
-                        items.push(format!("AQI: {} {}", aq.aqi, aq.category));
+                    let mut spans = Vec::new();
+                    if let Some(a) = aqi {
+                        spans.push(cosmic::iced::widget::span::<(), _>("AQI  ").color(muted));
+                        spans.push(cosmic::iced::widget::span::<(), _>(format!(
+                            "{} {}",
+                            a.aqi, a.category
+                        )));
                     }
-                    if let Some(uv) = uv_text {
-                        items.push(uv);
+                    if let Some((uvs, extreme)) = uv {
+                        if !spans.is_empty() {
+                            spans.push(cosmic::iced::widget::span::<(), _>("  ·  ").color(muted));
+                        }
+                        spans.push(cosmic::iced::widget::span::<(), _>("UV  ").color(muted));
+                        let mut uv_span = cosmic::iced::widget::span::<(), _>(uvs);
+                        if extreme {
+                            uv_span = uv_span.font(cosmic::font::bold());
+                        }
+                        spans.push(uv_span);
                     }
-                    if !items.is_empty() {
-                        hero_content = hero_content.push(widget::text::body(items.join("  ·  ")));
+                    if !spans.is_empty() {
+                        let line: Element<'_, Message> =
+                            cosmic::iced::widget::rich_text(spans).into();
+                        hero_content = hero_content.push(line);
                     }
                 }
 
@@ -1232,6 +1256,24 @@ fn aqi_style(severity: u8, theme: &cosmic::Theme) -> (Color, Color) {
         // Quiet tier: blend into the Secondary surface + normal text -> plain-text look
         (cosmic.secondary.base.into(), cosmic.secondary.on.into())
     }
+}
+
+/// One hero detail line from (label, value) pairs: muted labels + full-strength
+/// values, with a muted "  ·  " separator between pairs. An empty label emits the
+/// value alone (e.g. the weather condition). Spans own their strings → 'static.
+fn stat_line(muted: Color, pairs: Vec<(String, String)>) -> Element<'static, Message> {
+    use cosmic::iced::widget::{rich_text, span};
+    let mut spans = Vec::new();
+    for (i, (label, value)) in pairs.into_iter().enumerate() {
+        if i > 0 {
+            spans.push(span::<(), _>("  ·  ").color(muted));
+        }
+        if !label.is_empty() {
+            spans.push(span::<(), _>(format!("{label}  ")).color(muted));
+        }
+        spans.push(span::<(), _>(value));
+    }
+    rich_text(spans).into()
 }
 
 // TODO(i18n): route uv levels through fl! (uv-level-* keys)

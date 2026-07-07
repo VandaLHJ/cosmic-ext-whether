@@ -50,7 +50,7 @@ pub struct CurrentObservation {
 
 /// AirQuality struct mapped from weathervane's AirQualityData
 #[derive(Debug, Clone)]
-#[allow(dead_code)] // unshown until T4
+#[allow(dead_code)]
 pub struct AirQuality {
     pub aqi: i32,
     pub category: weathervane::AqiCategory,

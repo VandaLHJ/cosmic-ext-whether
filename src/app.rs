@@ -839,9 +839,6 @@ impl AppModel {
                 // Values render at full strength; the receding labels carry the hierarchy
                 // with no bold anywhere (MG2). Escalations still override: AQI color pill
                 // at Unhealthy+, bold UV word at Extreme.
-                // TODO(i18n): hero labels are literal English here — route through fl! in
-                //   the sweep (orphans: feels-like, wind-gusting, precip-info,
-                //   humidity-info, uv-info; ", gusting to" is inline).
                 let mut muted: Color = cosmic::theme::active().cosmic().background.on.into();
                 muted.a = 0.7;
 
@@ -853,8 +850,10 @@ impl AppModel {
                 // Condition · Feels like
                 let mut cond = vec![(String::new(), hero_condition)];
                 if let Some(f) = hero_feels_like {
-                    //                    cond.push(("Feels like".to_string(), format!("{f}°{hero_unit}")));
-                    cond.push((String::new(), format!("Feels like {f}°{hero_unit}")))
+                    cond.push((
+                        String::new(),
+                        fl!("feels-like", temp = format!("{f}°{hero_unit}")),
+                    ))
                 }
                 hero_content = hero_content.push(stat_line(muted, cond));
 
@@ -862,10 +861,10 @@ impl AppModel {
                 if let (Some(speed), Some(dir)) = (&hero_wind_speed, &hero_wind_dir) {
                     let mut value = format!("{speed} {dir}");
                     if let Some(g) = &hero_wind_gusts {
-                        value.push_str(&format!(", gusting to {g}"));
+                        value.push_str(&format!(", {}", fl!("gusting-to", gust = g.as_str())));
                     }
                     hero_content =
-                        hero_content.push(stat_line(muted, vec![("Wind".to_string(), value)]));
+                        hero_content.push(stat_line(muted, vec![(fl!("label-wind"), value)]));
                 } else if let Some(wind) = hero_wind {
                     // Fallback (no obs wind components): show the pre-formatted string as-is
                     hero_content = hero_content.push(stat_line(muted, vec![(String::new(), wind)]));
@@ -875,10 +874,10 @@ impl AppModel {
                 let mut ph: Vec<(String, String)> = Vec::new();
                 if let Some(p) = &current.probability_of_precipitation {
                     let chance = (p.value.unwrap_or(0.0) as i32).to_string();
-                    ph.push(("Precipitation".to_string(), format!("{chance}%")));
+                    ph.push((fl!("label-precipitation"), format!("{chance}%")));
                 }
                 if let Some(h) = hero_humidity {
-                    ph.push(("Humidity".to_string(), format!("{h}%")));
+                    ph.push((fl!("label-humidity"), format!("{h}%")));
                 }
                 if !ph.is_empty() {
                     hero_content = hero_content.push(stat_line(muted, ph));
@@ -895,7 +894,12 @@ impl AppModel {
                 if aqi.is_some_and(|a| a.severity >= 3) {
                     let a = aqi.unwrap();
                     let sev = a.severity;
-                    let label = format!("AQI: {} {}", a.aqi, a.category);
+                    let label = format!(
+                        "{}: {} {}",
+                        fl!("label-aqi"),
+                        a.aqi,
+                        aqi_category_label(a.category)
+                    );
                     let pill: Element<'_, Message> = widget::container(widget::text::body(label))
                         .padding([2, 8])
                         .class(cosmic::theme::Container::custom(move |theme| {
@@ -922,7 +926,9 @@ impl AppModel {
                             uv_span = uv_span.font(cosmic::font::bold());
                         }
                         let uv_el: Element<'_, Message> = cosmic::iced::widget::rich_text([
-                            cosmic::iced::widget::span::<(), _>("·  UV  ").color(muted),
+                            cosmic::iced::widget::span::<(), _>("·  ").color(muted),
+                            cosmic::iced::widget::span::<(), _>(format!("{}  ", fl!("label-uv")))
+                                .color(muted),
                             uv_span,
                         ])
                         .into();
@@ -933,17 +939,24 @@ impl AppModel {
                 } else {
                     let mut spans = Vec::new();
                     if let Some(a) = aqi {
-                        spans.push(cosmic::iced::widget::span::<(), _>("AQI  ").color(muted));
+                        spans.push(
+                            cosmic::iced::widget::span::<(), _>(format!("{}  ", fl!("label-aqi")))
+                                .color(muted),
+                        );
                         spans.push(cosmic::iced::widget::span::<(), _>(format!(
                             "{} {}",
-                            a.aqi, a.category
+                            a.aqi,
+                            aqi_category_label(a.category)
                         )));
                     }
                     if let Some((uvs, extreme)) = uv {
                         if !spans.is_empty() {
                             spans.push(cosmic::iced::widget::span::<(), _>("  ·  ").color(muted));
                         }
-                        spans.push(cosmic::iced::widget::span::<(), _>("UV  ").color(muted));
+                        spans.push(
+                            cosmic::iced::widget::span::<(), _>(format!("{}  ", fl!("label-uv")))
+                                .color(muted),
+                        );
                         let mut uv_span = cosmic::iced::widget::span::<(), _>(uvs);
                         if extreme {
                             uv_span = uv_span.font(cosmic::font::bold());
@@ -960,13 +973,11 @@ impl AppModel {
                 // --- "More" expander: secondary obs (dew point, pressure) + AQI
                 // pollutants. Mirrors the daily accordion (ToggleDay). Body stays inside
                 // the hero card — no nested Secondary layer — so it reads as one surface.
-                // TODO(i18n): literal English labels, matching the hero labels above;
-                //   route through fl! in the end-of-v0.3.0 sweep (more/less, air-quality
-                //   heading, dew-point, pressure, pm2.5/pm10/ozone).
+                // PM2.5 / PM10 stay literal (universal abbreviations); Ozone via label-ozone.
                 let (more_icon, more_word) = if self.current_expanded {
-                    ("pan-up-symbolic", "Less")
+                    ("pan-up-symbolic", fl!("label-less"))
                 } else {
-                    ("pan-down-symbolic", "More")
+                    ("pan-down-symbolic", fl!("label-more"))
                 };
                 let more_row = cosmic::iced::widget::row![
                     widget::icon::from_name(more_icon).symbolic(true).size(16),
@@ -990,11 +1001,11 @@ impl AppModel {
 
                     let mut secondary: Vec<(String, String)> = Vec::new();
                     if let Some(dew) = obs.and_then(|o| o.dew_point) {
-                        secondary.push(("Dew point".to_string(), format!("{dew}°{hero_unit}")));
+                        secondary.push((fl!("label-dew-point"), format!("{dew}°{hero_unit}")));
                     }
                     if let Some(p) = obs.and_then(|o| o.pressure) {
                         secondary.push((
-                            "Pressure".to_string(),
+                            fl!("label-pressure"),
                             format_pressure(p, self.config.use_fahrenheit),
                         ));
                     }
@@ -1005,7 +1016,7 @@ impl AppModel {
                     // AQI pollutant sub-block (only when air quality is present).
                     if let Some(a) = aqi {
                         let heading: Element<'_, Message> = cosmic::iced::widget::rich_text([
-                            cosmic::iced::widget::span::<(), _>("Air quality"),
+                            cosmic::iced::widget::span::<(), _>(fl!("label-air-quality")),
                             cosmic::iced::widget::span::<(), _>("  (µg/m³)").color(muted),
                         ])
                         .into();
@@ -1015,7 +1026,7 @@ impl AppModel {
                             vec![
                                 ("PM2.5".to_string(), format!("{:.0}", a.pm2_5)),
                                 ("PM10".to_string(), format!("{:.0}", a.pm10)),
-                                ("Ozone".to_string(), format!("{:.0}", a.ozone)),
+                                (fl!("label-ozone"), format!("{:.0}", a.ozone)),
                             ],
                         ));
                     }
@@ -1335,17 +1346,32 @@ fn flat_toggle_button_style() -> cosmic::theme::Button {
     }
 }
 
-// TODO(i18n): route uv levels through fl! (uv-level-* keys)
-fn uv_level(uv: f32) -> &'static str {
+fn uv_level(uv: f32) -> String {
     if uv < 3.0 {
-        "Low" // not reached (caller gates at >=3.0), but keeps the fn total
+        fl!("uv-level-low") // not reached (caller gates at >=3.0), but keeps the fn total
     } else if uv < 6.0 {
-        "Moderate"
+        fl!("uv-level-moderate")
     } else if uv < 8.0 {
-        "High"
+        fl!("uv-level-high")
     } else if uv < 11.0 {
-        "Very High"
+        fl!("uv-level-very-high")
     } else {
-        "Extreme"
+        fl!("uv-level-extreme")
+    }
+}
+
+fn aqi_category_label(c: weathervane::AqiCategory) -> String {
+    use weathervane::{AqiCategory, EuAqiCategory as Eu, UsAqiCategory as Us};
+    match c {
+        AqiCategory::Us(Us::Good) | AqiCategory::Eu(Eu::Good) => fl!("aqi-cat-good"),
+        AqiCategory::Us(Us::Moderate) | AqiCategory::Eu(Eu::Moderate) => fl!("aqi-cat-moderate"),
+        AqiCategory::Us(Us::UnhealthySensitive) => fl!("aqi-cat-unhealthy-sensitive"),
+        AqiCategory::Us(Us::Unhealthy) => fl!("aqi-cat-unhealthy"),
+        AqiCategory::Us(Us::VeryUnhealthy) => fl!("aqi-cat-very-unhealthy"),
+        AqiCategory::Us(Us::Hazardous) => fl!("aqi-cat-hazardous"),
+        AqiCategory::Eu(Eu::Fair) => fl!("aqi-cat-fair"),
+        AqiCategory::Eu(Eu::Poor) => fl!("aqi-cat-poor"),
+        AqiCategory::Eu(Eu::VeryPoor) => fl!("aqi-cat-very-poor"),
+        AqiCategory::Eu(Eu::ExtremelyPoor) => fl!("aqi-cat-extremely-poor"),
     }
 }

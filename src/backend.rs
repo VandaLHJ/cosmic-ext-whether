@@ -255,7 +255,7 @@ fn map_severity(s: weathervane::AlertSeverity) -> AlertSeverity {
 fn map_air_quality(a: weathervane::AirQualityData) -> AirQuality {
     AirQuality {
         aqi: a.aqi,
-        category: aqi_category_label(a.category),
+        category: a.category,
         pm2_5: a.pm2_5,
         pm10: a.pm10,
         ozone: a.ozone,
@@ -263,26 +263,6 @@ fn map_air_quality(a: weathervane::AirQualityData) -> AirQuality {
         co: a.carbon_monoxide,
         severity: aqi_severity_index(&a.category),
     }
-}
-
-// TODO(T4): route through fl!() when AQI is surfaced in the UI
-fn aqi_category_label(a: weathervane::AqiCategory) -> String {
-    use weathervane::{AqiCategory, EuAqiCategory as Eu, UsAqiCategory as Us};
-    match a {
-        AqiCategory::Us(Us::Good) => "Good",
-        AqiCategory::Us(Us::Moderate) => "Moderate",
-        AqiCategory::Us(Us::UnhealthySensitive) => "Unhealthy for Sensitive Groups",
-        AqiCategory::Us(Us::Unhealthy) => "Unhealthy",
-        AqiCategory::Us(Us::VeryUnhealthy) => "Very Unhealthy",
-        AqiCategory::Us(Us::Hazardous) => "Hazardous",
-        AqiCategory::Eu(Eu::Good) => "Good",
-        AqiCategory::Eu(Eu::Fair) => "Fair",
-        AqiCategory::Eu(Eu::Moderate) => "Moderate",
-        AqiCategory::Eu(Eu::Poor) => "Poor",
-        AqiCategory::Eu(Eu::VeryPoor) => "Very Poor",
-        AqiCategory::Eu(Eu::ExtremelyPoor) => "Extremely Poor",
-    }
-    .to_string()
 }
 
 fn aqi_severity_index(c: &weathervane::AqiCategory) -> u8 {

@@ -53,7 +53,7 @@ pub struct CurrentObservation {
 #[allow(dead_code)] // unshown until T4
 pub struct AirQuality {
     pub aqi: i32,
-    pub category: String, // display label from AqiCategory (see backend helper)
+    pub category: weathervane::AqiCategory,
     pub pm2_5: f32,
     pub pm10: f32,
     pub ozone: f32,

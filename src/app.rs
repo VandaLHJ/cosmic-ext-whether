@@ -853,13 +853,10 @@ impl AppModel {
                 // Condition · Feels like
                 let mut cond = vec![(String::new(), hero_condition)];
                 if let Some(f) = hero_feels_like {
-//                    cond.push(("Feels like".to_string(), format!("{f}°{hero_unit}")));
+                    //                    cond.push(("Feels like".to_string(), format!("{f}°{hero_unit}")));
                     cond.push((String::new(), format!("Feels like {f}°{hero_unit}")))
                 }
                 hero_content = hero_content.push(stat_line(muted, cond));
-
-
-
 
                 // Wind (+ optional gusts)
                 if let (Some(speed), Some(dir)) = (&hero_wind_speed, &hero_wind_dir) {
@@ -958,6 +955,72 @@ impl AppModel {
                             cosmic::iced::widget::rich_text(spans).into();
                         hero_content = hero_content.push(line);
                     }
+                }
+
+                // --- "More" expander: secondary obs (dew point, pressure) + AQI
+                // pollutants. Mirrors the daily accordion (ToggleDay). Body stays inside
+                // the hero card — no nested Secondary layer — so it reads as one surface.
+                // TODO(i18n): literal English labels, matching the hero labels above;
+                //   route through fl! in the end-of-v0.3.0 sweep (more/less, air-quality
+                //   heading, dew-point, pressure, pm2.5/pm10/ozone).
+                let (more_icon, more_word) = if self.current_expanded {
+                    ("pan-up-symbolic", "Less")
+                } else {
+                    ("pan-down-symbolic", "More")
+                };
+                let more_row = cosmic::iced::widget::row![
+                    widget::icon::from_name(more_icon).symbolic(true).size(16),
+                    widget::text::body(more_word),
+                ]
+                .spacing(8)
+                .align_y(Alignment::Center)
+                .padding(0);
+                let more_btn = widget::button::custom(more_row)
+                    .on_press(Message::ToggleCurrentMore)
+                    .width(Length::Fill)
+                    .padding([2, 4])
+                    .class(flat_toggle_button_style());
+                hero_content = hero_content.push(more_btn);
+
+                if self.current_expanded {
+                    let obs = self.observation.as_ref();
+                    let mut more_col = cosmic::iced::widget::column![]
+                        .spacing(2)
+                        .padding([6, 0, 0, 0]);
+
+                    let mut secondary: Vec<(String, String)> = Vec::new();
+                    if let Some(dew) = obs.and_then(|o| o.dew_point) {
+                        secondary.push(("Dew point".to_string(), format!("{dew}°{hero_unit}")));
+                    }
+                    if let Some(p) = obs.and_then(|o| o.pressure) {
+                        secondary.push((
+                            "Pressure".to_string(),
+                            format_pressure(p, self.config.use_fahrenheit),
+                        ));
+                    }
+                    if !secondary.is_empty() {
+                        more_col = more_col.push(stat_line(muted, secondary));
+                    }
+
+                    // AQI pollutant sub-block (only when air quality is present).
+                    if let Some(a) = aqi {
+                        let heading: Element<'_, Message> = cosmic::iced::widget::rich_text([
+                            cosmic::iced::widget::span::<(), _>("Air quality"),
+                            cosmic::iced::widget::span::<(), _>("  (µg/m³)").color(muted),
+                        ])
+                        .into();
+                        more_col = more_col.push(heading);
+                        more_col = more_col.push(stat_line(
+                            muted,
+                            vec![
+                                ("PM2.5".to_string(), format!("{:.0}", a.pm2_5)),
+                                ("PM10".to_string(), format!("{:.0}", a.pm10)),
+                                ("Ozone".to_string(), format!("{:.0}", a.ozone)),
+                            ],
+                        ));
+                    }
+
+                    hero_content = hero_content.push(more_col);
                 }
 
                 let hero = widget::layer_container(hero_content)
@@ -1089,66 +1152,7 @@ impl AppModel {
                     let row_btn = widget::button::custom(row_content)
                         .on_press(Message::ToggleDay(i))
                         .width(Length::Fill)
-                        .class(cosmic::theme::Button::Custom {
-                            active: Box::new(|_focused, _theme| cosmic::widget::button::Style {
-                                background: None,
-                                border_width: 0.0,
-                                border_color: cosmic::iced::Color::TRANSPARENT,
-                                outline_width: 0.0,
-                                outline_color: cosmic::iced::Color::TRANSPARENT,
-                                icon_color: None,
-                                text_color: None,
-                                overlay: None,
-                                shadow_offset: Default::default(),
-                                border_radius: Default::default(),
-                            }),
-                            disabled: Box::new(|_theme| cosmic::widget::button::Style {
-                                background: None,
-                                border_width: 0.0,
-                                border_color: cosmic::iced::Color::TRANSPARENT,
-                                outline_width: 0.0,
-                                outline_color: cosmic::iced::Color::TRANSPARENT,
-                                icon_color: None,
-                                text_color: None,
-                                overlay: None,
-                                shadow_offset: Default::default(),
-                                border_radius: Default::default(),
-                            }),
-                            hovered: Box::new(|_focused, theme| {
-                                let cosmic = theme.cosmic();
-                                cosmic::widget::button::Style {
-                                    background: Some(cosmic::iced::Background::Color(
-                                        cosmic.background.component.hover.into(),
-                                    )),
-                                    overlay: None,
-                                    border_width: 0.0,
-                                    border_color: cosmic::iced::Color::TRANSPARENT,
-                                    outline_width: 0.0,
-                                    outline_color: cosmic::iced::Color::TRANSPARENT,
-                                    icon_color: None,
-                                    text_color: None,
-                                    shadow_offset: Default::default(),
-                                    border_radius: cosmic.radius_s().into(),
-                                }
-                            }),
-                            pressed: Box::new(|_focused, theme| {
-                                let cosmic = theme.cosmic();
-                                cosmic::widget::button::Style {
-                                    background: Some(cosmic::iced::Background::Color(
-                                        cosmic.background.component.pressed.into(),
-                                    )),
-                                    overlay: None,
-                                    border_width: 0.0,
-                                    border_color: cosmic::iced::Color::TRANSPARENT,
-                                    outline_width: 0.0,
-                                    outline_color: cosmic::iced::Color::TRANSPARENT,
-                                    icon_color: None,
-                                    text_color: None,
-                                    shadow_offset: Default::default(),
-                                    border_radius: cosmic.radius_s().into(),
-                                }
-                            }),
-                        });
+                        .class(flat_toggle_button_style());
 
                     rows = rows.push(row_btn);
 
@@ -1274,6 +1278,61 @@ fn stat_line(muted: Color, pairs: Vec<(String, String)>) -> Element<'static, Mes
         spans.push(span::<(), _>(value));
     }
     rich_text(spans).into()
+}
+
+/// Pressure formatted for the current unit preference: inHg (imperial) or hPa.
+/// `hpa` is the raw value from the observation. (T5 replaces the `bool` with the
+/// 3-way pressure-unit cycle.)
+fn format_pressure(hpa: f32, imperial: bool) -> String {
+    if imperial {
+        format!("{:.2} inHg", hpa * 0.02953)
+    } else {
+        format!("{:.0} hPa", hpa)
+    }
+}
+
+/// Flat, borderless toggle-button styling shared by the daily forecast rows and the
+/// current-card "More" control: transparent until interaction, then a component
+/// hover/pressed fill with a small radius.
+fn flat_toggle_button_style() -> cosmic::theme::Button {
+    fn flat() -> cosmic::widget::button::Style {
+        cosmic::widget::button::Style {
+            background: None,
+            border_width: 0.0,
+            border_color: cosmic::iced::Color::TRANSPARENT,
+            outline_width: 0.0,
+            outline_color: cosmic::iced::Color::TRANSPARENT,
+            icon_color: None,
+            text_color: None,
+            overlay: None,
+            shadow_offset: Default::default(),
+            border_radius: Default::default(),
+        }
+    }
+    cosmic::theme::Button::Custom {
+        active: Box::new(|_focused, _theme| flat()),
+        disabled: Box::new(|_theme| flat()),
+        hovered: Box::new(|_focused, theme| {
+            let cosmic = theme.cosmic();
+            cosmic::widget::button::Style {
+                background: Some(cosmic::iced::Background::Color(
+                    cosmic.background.component.hover.into(),
+                )),
+                border_radius: cosmic.radius_s().into(),
+                ..flat()
+            }
+        }),
+        pressed: Box::new(|_focused, theme| {
+            let cosmic = theme.cosmic();
+            cosmic::widget::button::Style {
+                background: Some(cosmic::iced::Background::Color(
+                    cosmic.background.component.pressed.into(),
+                )),
+                border_radius: cosmic.radius_s().into(),
+                ..flat()
+            }
+        }),
+    }
 }
 
 // TODO(i18n): route uv levels through fl! (uv-level-* keys)

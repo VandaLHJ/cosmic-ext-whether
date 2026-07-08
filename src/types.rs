@@ -170,6 +170,7 @@ pub enum FetchState {
 #[derive(Debug, Clone)]
 pub struct DaySummary {
     pub name: String,
+    pub date: Option<String>,
     pub high: Option<i32>,
     pub low: Option<i32>,
     pub short_forecast: String,
@@ -198,6 +199,10 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
             });
             summaries.push(DaySummary {
                 name: period.name.clone(),
+                date: period
+                    .start_time
+                    .as_ref()
+                    .and_then(|s| s.get(..10).map(str::to_string)),
                 high: Some(period.temperature),
                 low,
                 short_forecast: period.short_forecast.clone(),
@@ -216,6 +221,10 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
             // Night-only period (e.g., first period is tonight)
             summaries.push(DaySummary {
                 name: period.name.clone(),
+                date: period
+                    .start_time
+                    .as_ref()
+                    .and_then(|s| s.get(..10).map(str::to_string)),
                 high: None,
                 low: Some(period.temperature),
                 short_forecast: period.short_forecast.clone(),

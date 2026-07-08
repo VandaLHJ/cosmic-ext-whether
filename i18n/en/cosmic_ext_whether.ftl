@@ -36,7 +36,8 @@ label-ozone = Ozone
 
 ## Forecast (hourly / daily)
 wind-info = Wind: {$speed} {$direction}
-precip-info = Precipitation: {$chance}%
+label-sunrise = Sunrise
+label-sunset = Sunset
 
 ## Alerts
 alerts-heading = Active Alerts

@@ -757,6 +757,10 @@ impl AppModel {
         }
 
         if let Some(forecast) = &self.forecast {
+            // Muted ink for labels + separators (theme text color at 0.7 alpha).
+            // Shared by the hero card and the daily expansion
+            let mut muted: Color = cosmic::theme::active().cosmic().background.on.into();
+            muted.a = 0.7;
             // --- Hero section ---
             if let Some(current) = forecast.periods.first() {
                 // Prefer observation data when available, fall back to forecast period
@@ -834,13 +838,6 @@ impl AppModel {
                     .observation
                     .as_ref()
                     .and_then(|o| o.wind_direction.clone());
-
-                // Muted ink for labels + separators (theme text color at 0.7 alpha).
-                // Values render at full strength; the receding labels carry the hierarchy
-                // with no bold anywhere (MG2). Escalations still override: AQI color pill
-                // at Unhealthy+, bold UV word at Extreme.
-                let mut muted: Color = cosmic::theme::active().cosmic().background.on.into();
-                muted.a = 0.7;
 
                 let mut hero_content = cosmic::iced::widget::column![icon_temp_row]
                     .spacing(2)
@@ -1170,30 +1167,51 @@ impl AppModel {
                     if is_expanded {
                         let mut detail_col = cosmic::iced::widget::column![].spacing(4);
 
-                        let wind = fl!(
-                            "wind-info",
-                            speed = day.wind_speed.as_str(),
-                            direction = day.wind_direction.as_str()
-                        );
-                        detail_col = detail_col.push(widget::text::body(wind));
-
-                        if let Some(chance) = day.precip_chance {
-                            let chance_str = chance.to_string();
-                            let precip = fl!("precip-info", chance = chance_str.as_str());
-                            detail_col = detail_col.push(widget::text::body(precip));
-                        }
-
-                        if !day.detailed_forecast.is_empty()
+                        // 1. Summary / prose - leads (bare, full-strength body text)
+                        let summary = if !day.detailed_forecast.is_empty()
                             && day.detailed_forecast != day.short_forecast
                         {
-                            detail_col =
-                                detail_col.push(widget::text::body(day.detailed_forecast.clone()));
+                            &day.detailed_forecast
+                        } else {
+                            &day.short_forecast
+                        };
+                        if !summary.is_empty() {
+                            detail_col = detail_col.push(widget::text::body(summary.clone()));
+                        }
+
+                        // 2. Wind - muted "wind" label + full-strength value
+                        let wind_val = format!("{} {}", day.wind_speed, day.wind_direction);
+                        detail_col =
+                            detail_col.push(stat_line(muted, vec![(fl!("label-wind"), wind_val)]));
+
+                        // 3. Precip
+                        if let Some(chance) = day.precip_chance {
+                            detail_col = detail_col.push(stat_line(
+                                muted,
+                                vec![(fl!("label-precipitation"), format!("{chance}%"))],
+                            ));
+                        }
+
+                        // 4. Sunrise / sunset
+                        if let Some(sun) = day
+                            .date
+                            .as_ref()
+                            .and_then(|d| forecast.sun_times.iter().find(|s| &s.date == d))
+                        {
+                            let sunrise = weathervane::format_time(&sun.sunrise, false); // 12h "6:42 AM"
+                            let sunset = weathervane::format_time(&sun.sunset, false);
+                            detail_col = detail_col.push(stat_line(
+                                muted,
+                                vec![
+                                    (fl!("label-sunrise"), sunrise),
+                                    (fl!("label-sunset"), sunset),
+                                ],
+                            ));
                         }
 
                         let detail = widget::layer_container(detail_col.padding([4, 16, 8, 36]))
                             .layer(cosmic::cosmic_theme::Layer::Secondary)
                             .width(Length::Fill);
-
                         rows = rows.push(detail);
                     }
                 }

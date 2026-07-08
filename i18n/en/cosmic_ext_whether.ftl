@@ -35,7 +35,6 @@ label-air-quality = Air quality
 label-ozone = Ozone
 
 ## Forecast (hourly / daily)
-wind-info = Wind: {$speed} {$direction}
 label-sunrise = Sunrise
 label-sunset = Sunset
 

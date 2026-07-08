@@ -785,11 +785,7 @@ impl AppModel {
                         .map(|c| condition_icon(c, obs.is_daytime))
                         .unwrap_or_else(|| weather_icon_for_period(current));
                     let wind = match (&obs.wind_speed, &obs.wind_direction) {
-                        (Some(speed), Some(dir)) => Some(fl!(
-                            "wind-info",
-                            speed = speed.as_str(),
-                            direction = dir.as_str()
-                        )),
+                        (Some(speed), Some(dir)) => Some(format!("{speed} {dir}")),
                         _ => None,
                     };
                     (
@@ -802,11 +798,7 @@ impl AppModel {
                         obs.feels_like,
                     )
                 } else {
-                    let wind = fl!(
-                        "wind-info",
-                        speed = current.wind_speed.as_str(),
-                        direction = current.wind_direction.as_str()
-                    );
+                    let wind = format!("{} {}", current.wind_speed, current.wind_direction);
                     (
                         current.temperature,
                         current.temperature_unit.clone(),
@@ -863,8 +855,9 @@ impl AppModel {
                     hero_content =
                         hero_content.push(stat_line(muted, vec![(fl!("label-wind"), value)]));
                 } else if let Some(wind) = hero_wind {
-                    // Fallback (no obs wind components): show the pre-formatted string as-is
-                    hero_content = hero_content.push(stat_line(muted, vec![(String::new(), wind)]));
+                    // Fallback (no obs wind components): label style, matching the primary path
+                    hero_content =
+                        hero_content.push(stat_line(muted, vec![(fl!("label-wind"), wind)]));
                 }
 
                 // Precipitation · Humidity

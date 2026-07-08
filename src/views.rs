@@ -287,8 +287,8 @@ impl AppModel {
 
     fn view_current_card(&self, forecast: &Forecast) -> Option<Element<'_, Message>> {
         // Shared by the hero card
-        let mut muted: Color = cosmic::theme::active().cosmic().background.on.into();
-        muted.a = 0.7;
+        let muted = muted_color();
+
         // --- Hero section ---
         if let Some(current) = forecast.periods.first() {
             // Prefer observation data when available, fall back to forecast period
@@ -657,9 +657,7 @@ impl AppModel {
     fn view_daily(&self, forecast: &Forecast) -> Element<'_, Message> {
         // --- Daily forecast (clickable rows with inline expansion) ---
         {
-            let mut muted: Color = cosmic::theme::active().cosmic().background.on.into();
-            muted.a = 0.7;
-
+            let muted = muted_color();
             let summaries = pair_daily_periods(&forecast.periods);
             let mut rows = cosmic::iced::widget::column![].spacing(0);
 
@@ -900,6 +898,12 @@ fn flat_toggle_button_style() -> cosmic::theme::Button {
             }
         }),
     }
+}
+
+fn muted_color() -> Color {
+    let mut c: Color = cosmic::theme::active().cosmic().background.on.into();
+    c.a = 0.7;
+    c
 }
 
 fn uv_level(uv: f32) -> String {

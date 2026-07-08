@@ -5,6 +5,7 @@ mod geocoding;
 mod i18n;
 mod nws;
 mod types;
+mod views;
 
 fn main() -> cosmic::iced::Result {
     let requested_languages = i18n_embed::DesktopLanguageRequester::requested_languages();

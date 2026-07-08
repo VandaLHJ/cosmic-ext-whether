@@ -691,6 +691,50 @@ impl AppModel {
             .padding(16)
             .width(Length::Fixed(360.0));
 
+        col = col.push(self.view_header());
+        if let Some(banner) = self.view_alert_banner() {
+            col = col.push(banner);
+        }
+
+        // Error / loading states
+        match &self.fetch_state {
+            FetchState::Loading if self.forecast.is_none() => {
+                let text = fl!("loading");
+                col = col.push(widget::text::body(text));
+                return col.into();
+            }
+            FetchState::Error(e) => {
+                let text = fl!("fetch-error", error = e.as_str());
+                col = col.push(widget::text::body(text));
+                if self.forecast.is_some() {
+                    let stale = fl!("stale-data");
+                    col = col.push(widget::text::caption(stale));
+                }
+            }
+            _ => {}
+        }
+
+        if let Some(forecast) = &self.forecast {
+            if let Some(card) = self.view_current_card(forecast) {
+                col = col.push(card);
+            }
+            if let Some(hourly) = self.view_hourly(forecast) {
+                col = col.push(hourly);
+            }
+            col = col.push(widget::divider::horizontal::default());
+            col = col.push(self.view_daily(forecast));
+        } else if matches!(self.fetch_state, FetchState::Idle) {
+            let text = fl!("no-location");
+            col = col.push(widget::text::body(text));
+        }
+
+        if let Some(footer) = self.view_footer() {
+            col = col.push(footer);
+        }
+        col.into()
+    }
+
+    fn view_header(&self) -> Element<'_, Message> {
         // --- Header: location name heading + chevron + refresh ---
         let location_name = self
             .config
@@ -711,8 +755,10 @@ impl AppModel {
         let header_row = cosmic::iced::widget::row![heading, chevron_btn, refresh_btn]
             .align_y(Alignment::Center)
             .spacing(8);
-        col = col.push(header_row);
+        header_row.into()
+    }
 
+    fn view_alert_banner(&self) -> Option<Element<'_, Message>> {
         // Alert banner
         if !self.alerts.is_empty() {
             let alert_icon = widget::icon::from_name("weather-severe-alert-symbolic")
@@ -735,500 +781,501 @@ impl AppModel {
             let alert_banner = widget::layer_container(alert_row)
                 .layer(cosmic::cosmic_theme::Layer::Secondary)
                 .width(Length::Fill);
-            col = col.push(alert_banner);
+            Some(alert_banner.into())
+        } else {
+            None
         }
+    }
 
-        // Error / loading states
-        match &self.fetch_state {
-            FetchState::Loading if self.forecast.is_none() => {
-                let text = fl!("loading");
-                col = col.push(widget::text::body(text));
-                return col.into();
-            }
-            FetchState::Error(e) => {
-                let text = fl!("fetch-error", error = e.as_str());
-                col = col.push(widget::text::body(text));
-                if self.forecast.is_some() {
-                    let stale = fl!("stale-data");
-                    col = col.push(widget::text::caption(stale));
-                }
-            }
-            _ => {}
-        }
-
-        if let Some(forecast) = &self.forecast {
-            // Muted ink for labels + separators (theme text color at 0.7 alpha).
-            // Shared by the hero card and the daily expansion
-            let mut muted: Color = cosmic::theme::active().cosmic().background.on.into();
-            muted.a = 0.7;
-            // --- Hero section ---
-            if let Some(current) = forecast.periods.first() {
-                // Prefer observation data when available, fall back to forecast period
-                let (
-                    hero_temp,
-                    hero_unit,
-                    hero_condition,
-                    hero_icon_name,
-                    hero_wind,
-                    hero_humidity,
-                    hero_feels_like,
-                ) = if let Some(obs) = &self.observation {
-                    let temp = obs.temperature.unwrap_or(current.temperature);
-                    let unit = &obs.temperature_unit;
-                    let cond = obs
-                        .condition
-                        .clone()
-                        .unwrap_or_else(|| current.short_forecast.clone());
-                    let icon = obs
-                        .condition
-                        .as_deref()
-                        .map(|c| condition_icon(c, obs.is_daytime))
-                        .unwrap_or_else(|| weather_icon_for_period(current));
-                    let wind = match (&obs.wind_speed, &obs.wind_direction) {
-                        (Some(speed), Some(dir)) => Some(format!("{speed} {dir}")),
-                        _ => None,
-                    };
-                    (
-                        temp,
-                        unit.clone(),
-                        cond,
-                        icon,
-                        wind,
-                        obs.humidity,
-                        obs.feels_like,
-                    )
-                } else {
-                    let wind = format!("{} {}", current.wind_speed, current.wind_direction);
-                    (
-                        current.temperature,
-                        current.temperature_unit.clone(),
-                        current.short_forecast.clone(),
-                        weather_icon_for_period(current),
-                        Some(wind),
-                        None, // humidity
-                        None, // feels_like
-                    )
+    fn view_current_card(&self, forecast: &Forecast) -> Option<Element<'_, Message>> {
+        // Shared by the hero card
+        let mut muted: Color = cosmic::theme::active().cosmic().background.on.into();
+        muted.a = 0.7;
+        // --- Hero section ---
+        if let Some(current) = forecast.periods.first() {
+            // Prefer observation data when available, fall back to forecast period
+            let (
+                hero_temp,
+                hero_unit,
+                hero_condition,
+                hero_icon_name,
+                hero_wind,
+                hero_humidity,
+                hero_feels_like,
+            ) = if let Some(obs) = &self.observation {
+                let temp = obs.temperature.unwrap_or(current.temperature);
+                let unit = &obs.temperature_unit;
+                let cond = obs
+                    .condition
+                    .clone()
+                    .unwrap_or_else(|| current.short_forecast.clone());
+                let icon = obs
+                    .condition
+                    .as_deref()
+                    .map(|c| condition_icon(c, obs.is_daytime))
+                    .unwrap_or_else(|| weather_icon_for_period(current));
+                let wind = match (&obs.wind_speed, &obs.wind_direction) {
+                    (Some(speed), Some(dir)) => Some(format!("{speed} {dir}")),
+                    _ => None,
                 };
+                (
+                    temp,
+                    unit.clone(),
+                    cond,
+                    icon,
+                    wind,
+                    obs.humidity,
+                    obs.feels_like,
+                )
+            } else {
+                let wind = format!("{} {}", current.wind_speed, current.wind_direction);
+                (
+                    current.temperature,
+                    current.temperature_unit.clone(),
+                    current.short_forecast.clone(),
+                    weather_icon_for_period(current),
+                    Some(wind),
+                    None, // humidity
+                    None, // feels_like
+                )
+            };
 
-                let icon = widget::icon::from_name(hero_icon_name)
-                    .symbolic(true)
-                    .size(28);
+            let icon = widget::icon::from_name(hero_icon_name)
+                .symbolic(true)
+                .size(28);
 
-                let temp_label = format!("{}°{hero_unit}", hero_temp);
-                let temp_btn = widget::button::custom(widget::text::title3(temp_label))
-                    .class(cosmic::widget::button::ButtonClass::Link)
-                    .on_press(Message::ToggleUnits);
+            let temp_label = format!("{}°{hero_unit}", hero_temp);
+            let temp_btn = widget::button::custom(widget::text::title3(temp_label))
+                .class(cosmic::widget::button::ButtonClass::Link)
+                .on_press(Message::ToggleUnits);
 
-                let icon_temp_row = cosmic::iced::widget::row![icon, temp_btn]
-                    .spacing(12)
+            let icon_temp_row = cosmic::iced::widget::row![icon, temp_btn]
+                .spacing(12)
+                .align_y(Alignment::Center);
+
+            let hero_uv_index = self.observation.as_ref().and_then(|o| o.uv_index);
+            let hero_wind_gusts = self.observation.as_ref().and_then(|o| o.wind_gusts.clone());
+            let hero_wind_speed = self.observation.as_ref().and_then(|o| o.wind_speed.clone());
+            let hero_wind_dir = self
+                .observation
+                .as_ref()
+                .and_then(|o| o.wind_direction.clone());
+
+            let mut hero_content = cosmic::iced::widget::column![icon_temp_row]
+                .spacing(2)
+                .padding(12)
+                .width(Length::Fill);
+
+            // Condition · Feels like
+            let mut cond = vec![(String::new(), hero_condition)];
+            if let Some(f) = hero_feels_like {
+                cond.push((
+                    String::new(),
+                    fl!("feels-like", temp = format!("{f}°{hero_unit}")),
+                ))
+            }
+            hero_content = hero_content.push(stat_line(muted, cond));
+
+            // Wind (+ optional gusts)
+            if let (Some(speed), Some(dir)) = (&hero_wind_speed, &hero_wind_dir) {
+                let mut value = format!("{speed} {dir}");
+                if let Some(g) = &hero_wind_gusts {
+                    value.push_str(&format!(", {}", fl!("gusting-to", gust = g.as_str())));
+                }
+                hero_content =
+                    hero_content.push(stat_line(muted, vec![(fl!("label-wind"), value)]));
+            } else if let Some(wind) = hero_wind {
+                // Fallback (no obs wind components): label style, matching the primary path
+                hero_content = hero_content.push(stat_line(muted, vec![(fl!("label-wind"), wind)]));
+            }
+
+            // Precipitation · Humidity
+            let mut ph: Vec<(String, String)> = Vec::new();
+            if let Some(p) = &current.probability_of_precipitation {
+                let chance = (p.value.unwrap_or(0.0) as i32).to_string();
+                ph.push((fl!("label-precipitation"), format!("{chance}%")));
+            }
+            if let Some(h) = hero_humidity {
+                ph.push((fl!("label-humidity"), format!("{h}%")));
+            }
+            if !ph.is_empty() {
+                hero_content = hero_content.push(stat_line(muted, ph));
+            }
+
+            // AQI + UV (health line). Muted labels + values like the other lines;
+            // escalations override: colored pill at Unhealthy+ (forces a row), bold
+            // value at Extreme UV (a bold span — no row needed).
+            let uv: Option<(String, bool)> = hero_uv_index
+                .filter(|u| *u >= 3.0)
+                .map(|u| (format!("{} {}", u.round() as i32, uv_level(u)), u >= 11.0));
+            let aqi = self.air_quality.as_ref();
+
+            if aqi.is_some_and(|a| a.severity >= 3) {
+                let a = aqi.unwrap();
+                let sev = a.severity;
+                let label = format!(
+                    "{}: {} {}",
+                    fl!("label-aqi"),
+                    a.aqi,
+                    aqi_category_label(a.category)
+                );
+                let pill: Element<'_, Message> = widget::container(widget::text::body(label))
+                    .padding([2, 8])
+                    .class(cosmic::theme::Container::custom(move |theme| {
+                        let (bg, fg) = aqi_style(sev, theme);
+                        cosmic::widget::container::Style {
+                            icon_color: None,
+                            text_color: Some(fg),
+                            background: Some(cosmic::iced::Background::Color(bg)),
+                            border: cosmic::iced::Border {
+                                radius: theme.cosmic().radius_s().into(),
+                                ..Default::default()
+                            },
+                            shadow: cosmic::iced::Shadow::default(),
+                            snap: true,
+                        }
+                    }))
+                    .into();
+                let mut health = cosmic::iced::widget::row![pill]
+                    .spacing(8)
                     .align_y(Alignment::Center);
-
-                let hero_uv_index = self.observation.as_ref().and_then(|o| o.uv_index);
-                let hero_wind_gusts = self.observation.as_ref().and_then(|o| o.wind_gusts.clone());
-                let hero_wind_speed = self.observation.as_ref().and_then(|o| o.wind_speed.clone());
-                let hero_wind_dir = self
-                    .observation
-                    .as_ref()
-                    .and_then(|o| o.wind_direction.clone());
-
-                let mut hero_content = cosmic::iced::widget::column![icon_temp_row]
-                    .spacing(2)
-                    .padding(12)
-                    .width(Length::Fill);
-
-                // Condition · Feels like
-                let mut cond = vec![(String::new(), hero_condition)];
-                if let Some(f) = hero_feels_like {
-                    cond.push((
-                        String::new(),
-                        fl!("feels-like", temp = format!("{f}°{hero_unit}")),
-                    ))
-                }
-                hero_content = hero_content.push(stat_line(muted, cond));
-
-                // Wind (+ optional gusts)
-                if let (Some(speed), Some(dir)) = (&hero_wind_speed, &hero_wind_dir) {
-                    let mut value = format!("{speed} {dir}");
-                    if let Some(g) = &hero_wind_gusts {
-                        value.push_str(&format!(", {}", fl!("gusting-to", gust = g.as_str())));
+                if let Some((uvs, extreme)) = uv {
+                    let mut uv_span = cosmic::iced::widget::span::<(), _>(uvs);
+                    if extreme {
+                        uv_span = uv_span.font(cosmic::font::bold());
                     }
-                    hero_content =
-                        hero_content.push(stat_line(muted, vec![(fl!("label-wind"), value)]));
-                } else if let Some(wind) = hero_wind {
-                    // Fallback (no obs wind components): label style, matching the primary path
-                    hero_content =
-                        hero_content.push(stat_line(muted, vec![(fl!("label-wind"), wind)]));
+                    let uv_el: Element<'_, Message> = cosmic::iced::widget::rich_text([
+                        cosmic::iced::widget::span::<(), _>("·  ").color(muted),
+                        cosmic::iced::widget::span::<(), _>(format!("{}  ", fl!("label-uv")))
+                            .color(muted),
+                        uv_span,
+                    ])
+                    .into();
+                    health = health.push(uv_el);
                 }
-
-                // Precipitation · Humidity
-                let mut ph: Vec<(String, String)> = Vec::new();
-                if let Some(p) = &current.probability_of_precipitation {
-                    let chance = (p.value.unwrap_or(0.0) as i32).to_string();
-                    ph.push((fl!("label-precipitation"), format!("{chance}%")));
-                }
-                if let Some(h) = hero_humidity {
-                    ph.push((fl!("label-humidity"), format!("{h}%")));
-                }
-                if !ph.is_empty() {
-                    hero_content = hero_content.push(stat_line(muted, ph));
-                }
-
-                // AQI + UV (health line). Muted labels + values like the other lines;
-                // escalations override: colored pill at Unhealthy+ (forces a row), bold
-                // value at Extreme UV (a bold span — no row needed).
-                let uv: Option<(String, bool)> = hero_uv_index
-                    .filter(|u| *u >= 3.0)
-                    .map(|u| (format!("{} {}", u.round() as i32, uv_level(u)), u >= 11.0));
-                let aqi = self.air_quality.as_ref();
-
-                if aqi.is_some_and(|a| a.severity >= 3) {
-                    let a = aqi.unwrap();
-                    let sev = a.severity;
-                    let label = format!(
-                        "{}: {} {}",
-                        fl!("label-aqi"),
+                let health: Element<'_, Message> = health.into();
+                hero_content = hero_content.push(health);
+            } else {
+                let mut spans = Vec::new();
+                if let Some(a) = aqi {
+                    spans.push(
+                        cosmic::iced::widget::span::<(), _>(format!("{}  ", fl!("label-aqi")))
+                            .color(muted),
+                    );
+                    spans.push(cosmic::iced::widget::span::<(), _>(format!(
+                        "{} {}",
                         a.aqi,
                         aqi_category_label(a.category)
-                    );
-                    let pill: Element<'_, Message> = widget::container(widget::text::body(label))
-                        .padding([2, 8])
-                        .class(cosmic::theme::Container::custom(move |theme| {
-                            let (bg, fg) = aqi_style(sev, theme);
-                            cosmic::widget::container::Style {
-                                icon_color: None,
-                                text_color: Some(fg),
-                                background: Some(cosmic::iced::Background::Color(bg)),
-                                border: cosmic::iced::Border {
-                                    radius: theme.cosmic().radius_s().into(),
-                                    ..Default::default()
-                                },
-                                shadow: cosmic::iced::Shadow::default(),
-                                snap: true,
-                            }
-                        }))
-                        .into();
-                    let mut health = cosmic::iced::widget::row![pill]
-                        .spacing(8)
-                        .align_y(Alignment::Center);
-                    if let Some((uvs, extreme)) = uv {
-                        let mut uv_span = cosmic::iced::widget::span::<(), _>(uvs);
-                        if extreme {
-                            uv_span = uv_span.font(cosmic::font::bold());
-                        }
-                        let uv_el: Element<'_, Message> = cosmic::iced::widget::rich_text([
-                            cosmic::iced::widget::span::<(), _>("·  ").color(muted),
-                            cosmic::iced::widget::span::<(), _>(format!("{}  ", fl!("label-uv")))
-                                .color(muted),
-                            uv_span,
-                        ])
-                        .into();
-                        health = health.push(uv_el);
-                    }
-                    let health: Element<'_, Message> = health.into();
-                    hero_content = hero_content.push(health);
-                } else {
-                    let mut spans = Vec::new();
-                    if let Some(a) = aqi {
-                        spans.push(
-                            cosmic::iced::widget::span::<(), _>(format!("{}  ", fl!("label-aqi")))
-                                .color(muted),
-                        );
-                        spans.push(cosmic::iced::widget::span::<(), _>(format!(
-                            "{} {}",
-                            a.aqi,
-                            aqi_category_label(a.category)
-                        )));
-                    }
-                    if let Some((uvs, extreme)) = uv {
-                        if !spans.is_empty() {
-                            spans.push(cosmic::iced::widget::span::<(), _>("  ·  ").color(muted));
-                        }
-                        spans.push(
-                            cosmic::iced::widget::span::<(), _>(format!("{}  ", fl!("label-uv")))
-                                .color(muted),
-                        );
-                        let mut uv_span = cosmic::iced::widget::span::<(), _>(uvs);
-                        if extreme {
-                            uv_span = uv_span.font(cosmic::font::bold());
-                        }
-                        spans.push(uv_span);
-                    }
+                    )));
+                }
+                if let Some((uvs, extreme)) = uv {
                     if !spans.is_empty() {
-                        let line: Element<'_, Message> =
-                            cosmic::iced::widget::rich_text(spans).into();
-                        hero_content = hero_content.push(line);
+                        spans.push(cosmic::iced::widget::span::<(), _>("  ·  ").color(muted));
+                    }
+                    spans.push(
+                        cosmic::iced::widget::span::<(), _>(format!("{}  ", fl!("label-uv")))
+                            .color(muted),
+                    );
+                    let mut uv_span = cosmic::iced::widget::span::<(), _>(uvs);
+                    if extreme {
+                        uv_span = uv_span.font(cosmic::font::bold());
+                    }
+                    spans.push(uv_span);
+                }
+                if !spans.is_empty() {
+                    let line: Element<'_, Message> = cosmic::iced::widget::rich_text(spans).into();
+                    hero_content = hero_content.push(line);
+                }
+            }
+            hero_content = hero_content.push(self.view_current_more(&hero_unit, muted));
+
+            let hero = widget::layer_container(hero_content)
+                .layer(cosmic::cosmic_theme::Layer::Secondary)
+                .width(Length::Fill);
+
+            Some(hero.into())
+        } else {
+            None
+        }
+    }
+
+    fn view_current_more(&self, hero_unit: &str, muted: Color) -> Element<'_, Message> {
+        // --- "More" expander: secondary obs (dew point, pressure) + AQI
+        // pollutants. Mirrors the daily accordion (ToggleDay). Body stays inside
+        // the hero card — no nested Secondary layer — so it reads as one surface.
+        // PM2.5 / PM10 stay literal (universal abbreviations); Ozone via label-ozone.
+        let (more_icon, more_word) = if self.current_expanded {
+            ("pan-up-symbolic", fl!("label-less"))
+        } else {
+            ("pan-down-symbolic", fl!("label-more"))
+        };
+        let more_row = cosmic::iced::widget::row![
+            widget::icon::from_name(more_icon).symbolic(true).size(16),
+            widget::text::body(more_word),
+        ]
+        .spacing(8)
+        .align_y(Alignment::Center)
+        .padding(0);
+        let more_btn = widget::button::custom(more_row)
+            .on_press(Message::ToggleCurrentMore)
+            .width(Length::Fill)
+            .padding([2, 4])
+            .class(flat_toggle_button_style());
+        let mut more = cosmic::iced::widget::column![more_btn]
+            .spacing(2)
+            .width(Length::Fill);
+
+        if self.current_expanded {
+            let obs = self.observation.as_ref();
+            let aqi = self.air_quality.as_ref();
+            let mut more_col = cosmic::iced::widget::column![]
+                .spacing(2)
+                .padding([6, 0, 0, 0]);
+
+            let mut secondary: Vec<(String, String)> = Vec::new();
+            if let Some(dew) = obs.and_then(|o| o.dew_point) {
+                secondary.push((fl!("label-dew-point"), format!("{dew}°{hero_unit}")));
+            }
+            if let Some(p) = obs.and_then(|o| o.pressure) {
+                secondary.push((
+                    fl!("label-pressure"),
+                    format_pressure(p, self.config.use_fahrenheit),
+                ));
+            }
+            if !secondary.is_empty() {
+                more_col = more_col.push(stat_line(muted, secondary));
+            }
+
+            // AQI pollutant sub-block (only when air quality is present).
+            if let Some(a) = aqi {
+                let heading: Element<'_, Message> = cosmic::iced::widget::rich_text([
+                    cosmic::iced::widget::span::<(), _>(fl!("label-air-quality")),
+                    cosmic::iced::widget::span::<(), _>("  (µg/m³)").color(muted),
+                ])
+                .into();
+                more_col = more_col.push(heading);
+                more_col = more_col.push(stat_line(
+                    muted,
+                    vec![
+                        ("PM2.5".to_string(), format!("{:.0}", a.pm2_5)),
+                        ("PM10".to_string(), format!("{:.0}", a.pm10)),
+                        (fl!("label-ozone"), format!("{:.0}", a.ozone)),
+                    ],
+                ));
+            }
+
+            more = more.push(more_col);
+        }
+
+        more.into()
+    }
+
+    fn view_hourly(&self, forecast: &Forecast) -> Option<Element<'_, Message>> {
+        // --- Hourly forecast (paged with arrow buttons) ---
+        if !forecast.hourly_periods.is_empty() {
+            let total = forecast.hourly_periods.len();
+            let offset = self
+                .hourly_offset
+                .min(total.saturating_sub(HOURLY_PAGE_SIZE));
+            let end = (offset + HOURLY_PAGE_SIZE).min(total);
+            let can_prev = offset > 0;
+            let can_next = end < total;
+
+            let prev_arrow: Element<'_, Message> = if can_prev {
+                widget::button::icon(
+                    widget::icon::from_name("go-previous-symbolic")
+                        .symbolic(true)
+                        .size(16),
+                )
+                .on_press(Message::HourlyPrev)
+                .into()
+            } else {
+                widget::Space::new().width(Length::Fixed(24.0)).into()
+            };
+
+            let mut hourly_row = cosmic::iced::widget::row![].spacing(0);
+            for i in offset..end {
+                let period = &forecast.hourly_periods[i];
+                let hour_label = if i == 0 {
+                    "Now".to_string()
+                } else {
+                    period
+                        .start_time
+                        .as_deref()
+                        .map(format_hour)
+                        .unwrap_or_default()
+                };
+
+                let icon_name = weather_icon_for_period(period);
+                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
+
+                let temp = widget::text::body(format!("{}°", period.temperature));
+
+                let mut hour_col =
+                    cosmic::iced::widget::column![widget::text::caption(hour_label), icon, temp,]
+                        .spacing(4)
+                        .align_x(Alignment::Center)
+                        .width(Length::Fill);
+
+                let has_precip_icon = icon_name.contains("showers")
+                    || icon_name.contains("storm")
+                    || icon_name.contains("snow");
+                if let Some(precip) = period
+                    .probability_of_precipitation
+                    .as_ref()
+                    .and_then(|p| p.value)
+                {
+                    let pct = precip as u32;
+                    if has_precip_icon || pct >= 20 {
+                        hour_col = hour_col.push(widget::text::caption(format!("{}%", pct)));
                     }
                 }
 
-                // --- "More" expander: secondary obs (dew point, pressure) + AQI
-                // pollutants. Mirrors the daily accordion (ToggleDay). Body stays inside
-                // the hero card — no nested Secondary layer — so it reads as one surface.
-                // PM2.5 / PM10 stay literal (universal abbreviations); Ozone via label-ozone.
-                let (more_icon, more_word) = if self.current_expanded {
-                    ("pan-up-symbolic", fl!("label-less"))
-                } else {
-                    ("pan-down-symbolic", fl!("label-more"))
-                };
-                let more_row = cosmic::iced::widget::row![
-                    widget::icon::from_name(more_icon).symbolic(true).size(16),
-                    widget::text::body(more_word),
-                ]
-                .spacing(8)
+                hourly_row = hourly_row.push(hour_col);
+            }
+
+            let next_arrow: Element<'_, Message> = if can_next {
+                widget::button::icon(
+                    widget::icon::from_name("go-next-symbolic")
+                        .symbolic(true)
+                        .size(16),
+                )
+                .on_press(Message::HourlyNext)
+                .into()
+            } else {
+                widget::Space::new().width(Length::Fixed(24.0)).into()
+            };
+
+            let paged_row = cosmic::iced::widget::row![prev_arrow, hourly_row, next_arrow]
+                .spacing(4)
                 .align_y(Alignment::Center)
-                .padding(0);
-                let more_btn = widget::button::custom(more_row)
-                    .on_press(Message::ToggleCurrentMore)
-                    .width(Length::Fill)
-                    .padding([2, 4])
-                    .class(flat_toggle_button_style());
-                hero_content = hero_content.push(more_btn);
+                .width(Length::Fill);
+            return Some(paged_row.into());
+        }
 
-                if self.current_expanded {
-                    let obs = self.observation.as_ref();
-                    let mut more_col = cosmic::iced::widget::column![]
-                        .spacing(2)
-                        .padding([6, 0, 0, 0]);
+        None
+    }
 
-                    let mut secondary: Vec<(String, String)> = Vec::new();
-                    if let Some(dew) = obs.and_then(|o| o.dew_point) {
-                        secondary.push((fl!("label-dew-point"), format!("{dew}°{hero_unit}")));
+    fn view_daily(&self, forecast: &Forecast) -> Element<'_, Message> {
+        // --- Daily forecast (clickable rows with inline expansion) ---
+        {
+            let mut muted: Color = cosmic::theme::active().cosmic().background.on.into();
+            muted.a = 0.7;
+
+            let summaries = pair_daily_periods(&forecast.periods);
+            let mut rows = cosmic::iced::widget::column![].spacing(0);
+
+            for (i, day) in summaries.iter().enumerate() {
+                if i > 0 {
+                    rows = rows.push(widget::divider::horizontal::light());
+                }
+
+                let is_expanded = self.expanded_day == Some(i);
+
+                let icon_name = forecast_icon_for_summary(day);
+                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
+
+                let name_text = widget::text::body(day.name.clone()).width(Length::Fill);
+
+                let temp_str = match (day.high, day.low) {
+                    (Some(h), Some(l)) => {
+                        format!("{}° / {}°", h, l)
                     }
-                    if let Some(p) = obs.and_then(|o| o.pressure) {
-                        secondary.push((
-                            fl!("label-pressure"),
-                            format_pressure(p, self.config.use_fahrenheit),
+                    (Some(h), None) => format!("{}°", h),
+                    (None, Some(l)) => format!("— / {}°", l),
+                    (None, None) => "—".to_string(),
+                };
+                let temp_text = widget::text::body(temp_str);
+
+                let row_content = cosmic::iced::widget::row![icon, name_text, temp_text]
+                    .spacing(8)
+                    .align_y(Alignment::Center)
+                    .padding([6, 4]);
+
+                let row_btn = widget::button::custom(row_content)
+                    .on_press(Message::ToggleDay(i))
+                    .width(Length::Fill)
+                    .class(flat_toggle_button_style());
+
+                rows = rows.push(row_btn);
+
+                if is_expanded {
+                    let mut detail_col = cosmic::iced::widget::column![].spacing(4);
+
+                    // 1. Summary / prose - leads (bare, full-strength body text)
+                    let summary = if !day.detailed_forecast.is_empty()
+                        && day.detailed_forecast != day.short_forecast
+                    {
+                        &day.detailed_forecast
+                    } else {
+                        &day.short_forecast
+                    };
+                    if !summary.is_empty() {
+                        detail_col = detail_col.push(widget::text::body(summary.clone()));
+                    }
+
+                    // 2. Wind - muted "wind" label + full-strength value
+                    let wind_val = format!("{} {}", day.wind_speed, day.wind_direction);
+                    detail_col =
+                        detail_col.push(stat_line(muted, vec![(fl!("label-wind"), wind_val)]));
+
+                    // 3. Precip
+                    if let Some(chance) = day.precip_chance {
+                        detail_col = detail_col.push(stat_line(
+                            muted,
+                            vec![(fl!("label-precipitation"), format!("{chance}%"))],
                         ));
                     }
-                    if !secondary.is_empty() {
-                        more_col = more_col.push(stat_line(muted, secondary));
-                    }
 
-                    // AQI pollutant sub-block (only when air quality is present).
-                    if let Some(a) = aqi {
-                        let heading: Element<'_, Message> = cosmic::iced::widget::rich_text([
-                            cosmic::iced::widget::span::<(), _>(fl!("label-air-quality")),
-                            cosmic::iced::widget::span::<(), _>("  (µg/m³)").color(muted),
-                        ])
-                        .into();
-                        more_col = more_col.push(heading);
-                        more_col = more_col.push(stat_line(
+                    // 4. Sunrise / sunset
+                    if let Some(sun) = day
+                        .date
+                        .as_ref()
+                        .and_then(|d| forecast.sun_times.iter().find(|s| &s.date == d))
+                    {
+                        let sunrise = weathervane::format_time(&sun.sunrise, false); // 12h "6:42 AM"
+                        let sunset = weathervane::format_time(&sun.sunset, false);
+                        detail_col = detail_col.push(stat_line(
                             muted,
                             vec![
-                                ("PM2.5".to_string(), format!("{:.0}", a.pm2_5)),
-                                ("PM10".to_string(), format!("{:.0}", a.pm10)),
-                                (fl!("label-ozone"), format!("{:.0}", a.ozone)),
+                                (fl!("label-sunrise"), sunrise),
+                                (fl!("label-sunset"), sunset),
                             ],
                         ));
                     }
 
-                    hero_content = hero_content.push(more_col);
+                    let detail = widget::layer_container(detail_col.padding([4, 16, 8, 36]))
+                        .layer(cosmic::cosmic_theme::Layer::Secondary)
+                        .width(Length::Fill);
+                    rows = rows.push(detail);
                 }
-
-                let hero = widget::layer_container(hero_content)
-                    .layer(cosmic::cosmic_theme::Layer::Secondary)
-                    .width(Length::Fill);
-
-                col = col.push(hero);
             }
 
-            // --- Hourly forecast (paged with arrow buttons) ---
-            if !forecast.hourly_periods.is_empty() {
-                let total = forecast.hourly_periods.len();
-                let offset = self
-                    .hourly_offset
-                    .min(total.saturating_sub(HOURLY_PAGE_SIZE));
-                let end = (offset + HOURLY_PAGE_SIZE).min(total);
-                let can_prev = offset > 0;
-                let can_next = end < total;
-
-                let prev_arrow: Element<'_, Message> = if can_prev {
-                    widget::button::icon(
-                        widget::icon::from_name("go-previous-symbolic")
-                            .symbolic(true)
-                            .size(16),
-                    )
-                    .on_press(Message::HourlyPrev)
-                    .into()
-                } else {
-                    widget::Space::new().width(Length::Fixed(24.0)).into()
-                };
-
-                let mut hourly_row = cosmic::iced::widget::row![].spacing(0);
-                for i in offset..end {
-                    let period = &forecast.hourly_periods[i];
-                    let hour_label = if i == 0 {
-                        "Now".to_string()
-                    } else {
-                        period
-                            .start_time
-                            .as_deref()
-                            .map(format_hour)
-                            .unwrap_or_default()
-                    };
-
-                    let icon_name = weather_icon_for_period(period);
-                    let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
-
-                    let temp = widget::text::body(format!("{}°", period.temperature));
-
-                    let mut hour_col = cosmic::iced::widget::column![
-                        widget::text::caption(hour_label),
-                        icon,
-                        temp,
-                    ]
-                    .spacing(4)
-                    .align_x(Alignment::Center)
-                    .width(Length::Fill);
-
-                    let has_precip_icon = icon_name.contains("showers")
-                        || icon_name.contains("storm")
-                        || icon_name.contains("snow");
-                    if let Some(precip) = period
-                        .probability_of_precipitation
-                        .as_ref()
-                        .and_then(|p| p.value)
-                    {
-                        let pct = precip as u32;
-                        if has_precip_icon || pct >= 20 {
-                            hour_col = hour_col.push(widget::text::caption(format!("{}%", pct)));
-                        }
-                    }
-
-                    hourly_row = hourly_row.push(hour_col);
-                }
-
-                let next_arrow: Element<'_, Message> = if can_next {
-                    widget::button::icon(
-                        widget::icon::from_name("go-next-symbolic")
-                            .symbolic(true)
-                            .size(16),
-                    )
-                    .on_press(Message::HourlyNext)
-                    .into()
-                } else {
-                    widget::Space::new().width(Length::Fixed(24.0)).into()
-                };
-
-                let paged_row = cosmic::iced::widget::row![prev_arrow, hourly_row, next_arrow]
-                    .spacing(4)
-                    .align_y(Alignment::Center)
-                    .width(Length::Fill);
-                col = col.push(paged_row);
-            }
-
-            col = col.push(widget::divider::horizontal::default());
-
-            // --- Daily forecast (clickable rows with inline expansion) ---
-            {
-                let summaries = pair_daily_periods(&forecast.periods);
-                let mut rows = cosmic::iced::widget::column![].spacing(0);
-
-                for (i, day) in summaries.iter().enumerate() {
-                    if i > 0 {
-                        rows = rows.push(widget::divider::horizontal::light());
-                    }
-
-                    let is_expanded = self.expanded_day == Some(i);
-
-                    let icon_name = forecast_icon_for_summary(day);
-                    let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
-
-                    let name_text = widget::text::body(day.name.clone()).width(Length::Fill);
-
-                    let temp_str = match (day.high, day.low) {
-                        (Some(h), Some(l)) => {
-                            format!("{}° / {}°", h, l)
-                        }
-                        (Some(h), None) => format!("{}°", h),
-                        (None, Some(l)) => format!("— / {}°", l),
-                        (None, None) => "—".to_string(),
-                    };
-                    let temp_text = widget::text::body(temp_str);
-
-                    let row_content = cosmic::iced::widget::row![icon, name_text, temp_text]
-                        .spacing(8)
-                        .align_y(Alignment::Center)
-                        .padding([6, 4]);
-
-                    let row_btn = widget::button::custom(row_content)
-                        .on_press(Message::ToggleDay(i))
-                        .width(Length::Fill)
-                        .class(flat_toggle_button_style());
-
-                    rows = rows.push(row_btn);
-
-                    if is_expanded {
-                        let mut detail_col = cosmic::iced::widget::column![].spacing(4);
-
-                        // 1. Summary / prose - leads (bare, full-strength body text)
-                        let summary = if !day.detailed_forecast.is_empty()
-                            && day.detailed_forecast != day.short_forecast
-                        {
-                            &day.detailed_forecast
-                        } else {
-                            &day.short_forecast
-                        };
-                        if !summary.is_empty() {
-                            detail_col = detail_col.push(widget::text::body(summary.clone()));
-                        }
-
-                        // 2. Wind - muted "wind" label + full-strength value
-                        let wind_val = format!("{} {}", day.wind_speed, day.wind_direction);
-                        detail_col =
-                            detail_col.push(stat_line(muted, vec![(fl!("label-wind"), wind_val)]));
-
-                        // 3. Precip
-                        if let Some(chance) = day.precip_chance {
-                            detail_col = detail_col.push(stat_line(
-                                muted,
-                                vec![(fl!("label-precipitation"), format!("{chance}%"))],
-                            ));
-                        }
-
-                        // 4. Sunrise / sunset
-                        if let Some(sun) = day
-                            .date
-                            .as_ref()
-                            .and_then(|d| forecast.sun_times.iter().find(|s| &s.date == d))
-                        {
-                            let sunrise = weathervane::format_time(&sun.sunrise, false); // 12h "6:42 AM"
-                            let sunset = weathervane::format_time(&sun.sunset, false);
-                            detail_col = detail_col.push(stat_line(
-                                muted,
-                                vec![
-                                    (fl!("label-sunrise"), sunrise),
-                                    (fl!("label-sunset"), sunset),
-                                ],
-                            ));
-                        }
-
-                        let detail = widget::layer_container(detail_col.padding([4, 16, 8, 36]))
-                            .layer(cosmic::cosmic_theme::Layer::Secondary)
-                            .width(Length::Fill);
-                        rows = rows.push(detail);
-                    }
-                }
-
-                col = col.push(rows);
-            }
-
-            // --- Footer: "Updated X min ago" ---
-            if let Some(updated) = self.last_updated {
-                let elapsed = updated.elapsed().as_secs() / 60;
-                let time_text = if elapsed == 0 {
-                    fl!("updated-now")
-                } else {
-                    let mins = elapsed.to_string();
-                    fl!("updated-ago", minutes = mins.as_str())
-                };
-                col = col.push(widget::text::caption(time_text));
-            }
-        } else if matches!(self.fetch_state, FetchState::Idle) {
-            let text = fl!("no-location");
-            col = col.push(widget::text::body(text));
+            rows.into()
         }
+    }
 
-        col.into()
+    fn view_footer(&self) -> Option<Element<'_, Message>> {
+        // --- Footer: "Updated X min ago" ---
+        let updated = self.last_updated?;
+        let elapsed = updated.elapsed().as_secs() / 60;
+        let time_text = if elapsed == 0 {
+            fl!("updated-now")
+        } else {
+            let mins = elapsed.to_string();
+            fl!("updated-ago", minutes = mins.as_str())
+        };
+        Some(widget::text::caption(time_text).into())
+
+        //        if let Some(updated) = self.last_updated {
+        //            let elapsed = updated.elapsed().as_secs() / 60;
+        //            let time_text = if elapsed == 0 {
+        //                fl!("updated-now")
+        //            } else {
+        //                let mins = elapsed.to_string();
+        //                fl!("updated-ago", minutes = mins.as_str())
+        //           };
+        //            col = col.push(widget::text::caption(time_text));
     }
 }
 

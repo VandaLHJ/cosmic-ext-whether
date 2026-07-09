@@ -63,3 +63,10 @@ aqi-cat-fair = Fair
 aqi-cat-poor = Poor
 aqi-cat-very-poor = Very Poor
 aqi-cat-extremely-poor = Extremely Poor
+
+##About
+app-title = Whether
+about = About
+about-summary = Data from Open-Meteo, NWS & JMA via weathervane
+about-homepage = Homepage
+about-issues = Report an issue

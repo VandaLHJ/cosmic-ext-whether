@@ -1,4 +1,5 @@
 use crate::app::{AppModel, Message};
+use crate::config::APP_ID;
 use crate::fl;
 use crate::types::{
     condition_icon, format_hour, pair_daily_periods, FetchState, Forecast, ForecastPeriod,
@@ -226,9 +227,7 @@ impl AppModel {
             col = col.push(widget::text::body(text));
         }
 
-        if let Some(footer) = self.view_footer() {
-            col = col.push(footer);
-        }
+        col = col.push(self.view_footer());
         col.into()
     }
 
@@ -751,27 +750,78 @@ impl AppModel {
         }
     }
 
-    fn view_footer(&self) -> Option<Element<'_, Message>> {
-        // --- Footer: "Updated X min ago" ---
-        let updated = self.last_updated?;
-        let elapsed = updated.elapsed().as_secs() / 60;
-        let time_text = if elapsed == 0 {
-            fl!("updated-now")
-        } else {
-            let mins = elapsed.to_string();
-            fl!("updated-ago", minutes = mins.as_str())
-        };
-        Some(widget::text::caption(time_text).into())
+    fn view_footer(&self) -> Element<'_, Message> {
+        // --- Footer: "Updated X min ago"(left) + "Whether · vX" About link (right) ---
+        let updated_text = self.last_updated.map(|updated| {
+            let elapsed = updated.elapsed().as_secs() / 60;
+            if elapsed == 0 {
+                fl!("updated-now")
+            } else {
+                let mins = elapsed.to_string();
+                fl!("updated-ago", minutes = mins.as_str())
+            }
+        });
+        let about_link = widget::button::custom(widget::text::caption(format!(
+            "{} · v{}",
+            fl!("app-title"),
+            env!("CARGO_PKG_VERSION")
+        )))
+        .class(cosmic::theme::Button::Link)
+        .on_press(Message::OpenAbout);
+        cosmic::iced::widget::row![
+            widget::text::caption(updated_text.unwrap_or_default()).width(Length::Fill),
+            about_link,
+        ]
+        .align_y(Alignment::Center)
+        .into()
+    }
+    pub(crate) fn view_about(&self) -> Element<'_, Message> {
+        let back_btn =
+            widget::button::icon(widget::icon::from_name("go-previous-symbolic").symbolic(true))
+                .on_press(Message::BackToMain);
+        let title_row = cosmic::iced::widget::row![
+            back_btn,
+            widget::text::heading(fl!("about")).width(Length::Fill),
+        ]
+        .align_y(Alignment::Center)
+        .spacing(8);
 
-        //        if let Some(updated) = self.last_updated {
-        //            let elapsed = updated.elapsed().as_secs() / 60;
-        //            let time_text = if elapsed == 0 {
-        //                fl!("updated-now")
-        //            } else {
-        //                let mins = elapsed.to_string();
-        //                fl!("updated-ago", minutes = mins.as_str())
-        //           };
-        //            col = col.push(widget::text::caption(time_text));
+        let icon = widget::icon::from_name(format!("{APP_ID}-symbolic"))
+            .symbolic(true)
+            .size(64);
+        let name = widget::text::title3(fl!("app-title"));
+        let summary = widget::text::caption(fl!("about-summary"));
+        let version = widget::text::body(format!("v{}", env!("CARGO_PKG_VERSION")));
+        let identity = cosmic::iced::widget::column![icon, name, summary, version]
+            .align_x(Alignment::Center)
+            .spacing(4);
+
+        let homepage = widget::button::link(fl!("about-homepage"))
+            .trailing_icon(true)
+            .on_press(Message::OpenUrl(
+                "https://github.com/nwxnw/cosmic-ext-whether".to_string(),
+            ));
+        let issues = widget::button::link(fl!("about-issues"))
+            .trailing_icon(true)
+            .on_press(Message::OpenUrl(
+                "https://github.com/nwxnw/cosmic-ext-whether/issues".to_string(),
+            ));
+        let links = cosmic::iced::widget::column![homepage, issues]
+            .align_x(Alignment::Center)
+            .spacing(4);
+
+        let license = widget::text::caption("GPL-3.0");
+
+        let body = cosmic::iced::widget::column![identity, links, license]
+            .align_x(Alignment::Center)
+            .spacing(16)
+            .width(Length::Fill)
+            .padding(16);
+
+        let content = cosmic::iced::widget::column![title_row, body].spacing(8);
+        widget::container(widget::scrollable(content))
+            .width(Length::Fixed(360.0))
+            .into()
     }
 }
 

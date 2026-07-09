@@ -23,6 +23,7 @@ pub enum Page {
     Main,
     Setup,
     Locations,
+    About,
 }
 
 pub struct AppModel {
@@ -101,6 +102,9 @@ pub enum Message {
     ToggleDay(usize),
     ToggleCurrentMore,
     ConfigChanged(WhetherConfig),
+    OpenAbout,
+    OpenUrl(String),
+    Ignore,
 }
 
 impl cosmic::Application for AppModel {
@@ -216,6 +220,7 @@ impl cosmic::Application for AppModel {
             Page::Setup => self.view_setup(),
             Page::Main => self.view_main(),
             Page::Locations => self.view_locations(),
+            Page::About => self.view_about(),
         };
         self.core.applet.popup_container(content).into()
     }
@@ -459,6 +464,18 @@ impl cosmic::Application for AppModel {
                     return fetch_weather_task(&self.config);
                 }
             }
+            Message::OpenAbout => {
+                self.page = Page::About;
+            }
+            Message::OpenUrl(url) => {
+                return Task::perform(
+                    async move {
+                        let _ = tokio::process::Command::new("xdg-open").arg(url).spawn();
+                    },
+                    |_| cosmic::Action::App(Message::Ignore),
+                );
+            }
+            Message::Ignore => {}
         }
         Task::none()
     }

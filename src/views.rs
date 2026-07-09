@@ -78,8 +78,12 @@ impl AppModel {
             col = col.push(widget::text::body(text));
         } else if !self.search_results.is_empty() {
             for (i, result) in self.search_results.iter().enumerate() {
-                let btn =
-                    widget::button::text(&result.display_name).on_press(Message::SelectLocation(i));
+                let btn = widget::button::custom(
+                    widget::text::body(&result.display_name).width(Length::Fill),
+                )
+                .class(cosmic::theme::Button::Text)
+                .width(Length::Fill)
+                .on_press(Message::SelectLocation(i));
                 col = col.push(btn);
             }
         } else if self.search_done {
@@ -172,8 +176,12 @@ impl AppModel {
             col = col.push(widget::text::body(text));
         } else if !self.search_results.is_empty() {
             for (i, result) in self.search_results.iter().enumerate() {
-                let btn =
-                    widget::button::text(&result.display_name).on_press(Message::SelectLocation(i));
+                let btn = widget::button::custom(
+                    widget::text::body(&result.display_name).width(Length::Fill),
+                )
+                .class(cosmic::theme::Button::Text)
+                .width(Length::Fill)
+                .on_press(Message::SelectLocation(i));
                 col = col.push(btn);
             }
         } else if self.search_done {

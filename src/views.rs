@@ -65,7 +65,7 @@ impl AppModel {
             .spacing(8)
             .align_y(Alignment::Center);
 
-        let mut col = cosmic::iced::widget::column![widget::text::title3(title), search_row,]
+        let mut col = cosmic::iced::widget::column![widget::text::title4(title), search_row,]
             .spacing(12)
             .padding(16)
             .width(Length::Fixed(360.0));
@@ -101,7 +101,7 @@ impl AppModel {
                 .on_press(Message::BackToMain);
 
         let title_row =
-            cosmic::iced::widget::row![widget::text::title3(title).width(Length::Fill), back_btn,]
+            cosmic::iced::widget::row![back_btn, widget::text::title4(title).width(Length::Fill),]
                 .align_y(Alignment::Center)
                 .spacing(8);
 
@@ -247,7 +247,7 @@ impl AppModel {
             .get(self.config.active_location_index)
             .map(|loc| loc.name.clone())
             .unwrap_or_else(|| fl!("default-heading"));
-        let heading = widget::text::title3(location_name).width(Length::Fill);
+        let heading = widget::text::title4(location_name).width(Length::Fill);
 
         let chevron_btn =
             widget::button::icon(widget::icon::from_name("go-next-symbolic").symbolic(true))
@@ -795,7 +795,7 @@ impl AppModel {
                 .on_press(Message::BackToMain);
         let title_row = cosmic::iced::widget::row![
             back_btn,
-            widget::text::heading(fl!("about")).width(Length::Fill),
+            widget::text::title4(fl!("about")).width(Length::Fill),
         ]
         .align_y(Alignment::Center)
         .spacing(8);
@@ -803,7 +803,7 @@ impl AppModel {
         let icon = widget::icon::from_name(format!("{APP_ID}-symbolic"))
             .symbolic(true)
             .size(64);
-        let name = widget::text::title3(fl!("app-title"));
+        let name = widget::text::title4(fl!("app-title"));
         let summary = widget::text::caption(fl!("about-summary"));
         let version = widget::text::body(format!("v{}", env!("CARGO_PKG_VERSION")));
         let identity = cosmic::iced::widget::column![icon, name, summary, version]
@@ -832,7 +832,9 @@ impl AppModel {
             .width(Length::Fill)
             .padding(16);
 
-        let content = cosmic::iced::widget::column![title_row, body].spacing(8);
+        let content = cosmic::iced::widget::column![title_row, body]
+            .spacing(12)
+            .padding(16);
         widget::container(widget::scrollable(content))
             .width(Length::Fixed(360.0))
             .into()

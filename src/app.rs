@@ -189,6 +189,7 @@ impl cosmic::Application for AppModel {
                     Message::Surface(destroy_popup(id))
                 } else {
                     Message::Surface(app_popup::<AppModel>(
+                        |_| Default::default(),
                         move |state: &mut AppModel| {
                             let new_id = Id::unique();
                             state.popup = Some(new_id);

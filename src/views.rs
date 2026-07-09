@@ -879,7 +879,10 @@ fn aqi_style(severity: u8, theme: &cosmic::Theme) -> (Color, Color) {
         table[(severity as usize - 3).min(2)]
     } else {
         // Quiet tier: blend into the Secondary surface + normal text -> plain-text look
-        (cosmic.secondary.base.into(), cosmic.secondary.on.into())
+        (
+            cosmic.secondary(false).base.into(),
+            cosmic.secondary(false).on.into(),
+        )
     }
 }
 
@@ -937,7 +940,7 @@ fn flat_toggle_button_style() -> cosmic::theme::Button {
             let cosmic = theme.cosmic();
             cosmic::widget::button::Style {
                 background: Some(cosmic::iced::Background::Color(
-                    cosmic.background.component.hover.into(),
+                    cosmic.background(false).component.hover.into(),
                 )),
                 border_radius: cosmic.radius_s().into(),
                 ..flat()
@@ -947,7 +950,7 @@ fn flat_toggle_button_style() -> cosmic::theme::Button {
             let cosmic = theme.cosmic();
             cosmic::widget::button::Style {
                 background: Some(cosmic::iced::Background::Color(
-                    cosmic.background.component.pressed.into(),
+                    cosmic.background(false).component.pressed.into(),
                 )),
                 border_radius: cosmic.radius_s().into(),
                 ..flat()
@@ -957,7 +960,7 @@ fn flat_toggle_button_style() -> cosmic::theme::Button {
 }
 
 fn muted_color() -> Color {
-    let mut c: Color = cosmic::theme::active().cosmic().background.on.into();
+    let mut c: Color = cosmic::theme::active().cosmic().background(false).on.into();
     c.a = 0.7;
     c
 }

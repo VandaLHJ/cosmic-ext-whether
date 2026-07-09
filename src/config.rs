@@ -35,7 +35,7 @@ fn detect_fahrenheit_default() -> bool {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, CosmicConfigEntry)]
-#[version = 4]
+#[version = 5]
 pub struct WhetherConfig {
     pub use_fahrenheit: bool,
     pub locations: Vec<SavedLocation>,
@@ -61,7 +61,7 @@ impl WhetherConfig {
 }
 
 pub fn load_config() -> (WhetherConfig, Option<Config>) {
-    // Try loading v4 config
+    // Try loading v5 config
     if let Ok(config) = Config::new(APP_ID, WhetherConfig::VERSION) {
         match WhetherConfig::get_entry(&config) {
             Ok(cfg) => return (cfg, Some(config)),
@@ -70,6 +70,21 @@ pub fn load_config() -> (WhetherConfig, Option<Config>) {
                 let _ = cfg.write_entry(&config);
                 return (cfg, Some(config));
             }
+        }
+    }
+
+    // v5 config doesn't exist - try migrating from v3
+    // The only schema change from v4 is removal of `SavedLocation.source`
+    // (dropped in the v0.3.0 weathervane migration). It lived inside the RON
+    // `locations` blob, so serde simply ignores the now-unknown field and each
+    // v4 location deserializes cleanly - no field transform
+    if let Ok(v4_handle) = Config::new(APP_ID, 4) {
+        if let Ok(cfg) = WhetherConfig::get_entry(&v4_handle) {
+            if let Ok(v5_handle) = Config::new(APP_ID, WhetherConfig::VERSION) {
+                let _ = cfg.write_entry(&v5_handle);
+                return (cfg, Some(v5_handle));
+            }
+            return (cfg, None);
         }
     }
 

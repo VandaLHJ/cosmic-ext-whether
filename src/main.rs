@@ -1,10 +1,11 @@
 mod app;
+pub mod backend;
 mod config;
 mod geocoding;
 mod i18n;
 mod nws;
-mod open_meteo;
 mod types;
+mod views;
 
 fn main() -> cosmic::iced::Result {
     let requested_languages = i18n_embed::DesktopLanguageRequester::requested_languages();

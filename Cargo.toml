@@ -15,6 +15,7 @@ chrono = { version = "0.4", default-features = false, features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
+weathervane = { git = "https://gitlab.com/nwxnw/weathervane", rev = "9648c18" }
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic"

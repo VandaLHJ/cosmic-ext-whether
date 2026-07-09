@@ -40,13 +40,3 @@ pub async fn search_location(query: String) -> Result<Vec<SearchResult>, GeoErro
 
     Ok(results)
 }
-
-/// Check whether a search result is a US location based on address country code.
-pub fn is_us_location(result: &SearchResult) -> bool {
-    result
-        .address
-        .as_ref()
-        .and_then(|a| a.country_code.as_deref())
-        .map(|cc| cc == "us")
-        .unwrap_or(false)
-}

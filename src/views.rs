@@ -697,10 +697,15 @@ impl AppModel {
                 if is_expanded {
                     let mut detail_col = cosmic::iced::widget::column![].spacing(4);
 
+                    // NWS supplies distinct short/detailed strings while OM offers only a condition label.
+                    // Whether pulls the prose forecast from NWS via a shim. If prose forecast is
+                    // available, wind+precip details are omitted from whether daily forecast.
+
+                    let has_prose = !day.detailed_forecast.is_empty()
+                        && day.detailed_forecast != day.short_forecast;
+
                     // 1. Summary / prose - leads (bare, full-strength body text)
-                    let summary = if !day.detailed_forecast.is_empty()
-                        && day.detailed_forecast != day.short_forecast
-                    {
+                    let summary = if has_prose {
                         &day.detailed_forecast
                     } else {
                         &day.short_forecast
@@ -709,17 +714,18 @@ impl AppModel {
                         detail_col = detail_col.push(widget::text::body(summary.clone()));
                     }
 
-                    // 2. Wind - muted "wind" label + full-strength value
-                    let wind_val = format!("{} {}", day.wind_speed, day.wind_direction);
-                    detail_col =
-                        detail_col.push(stat_line(muted, vec![(fl!("label-wind"), wind_val)]));
-
-                    // 3. Precip
-                    if let Some(chance) = day.precip_chance {
-                        detail_col = detail_col.push(stat_line(
-                            muted,
-                            vec![(fl!("label-precipitation"), format!("{chance}%"))],
-                        ));
+                    // 2. Wind + Precip - structured stats. OM only: NWS prose already
+                    // narrates wind/precip
+                    if !has_prose {
+                        let wind_val = format!("{} {}", day.wind_speed, day.wind_direction);
+                        detail_col =
+                            detail_col.push(stat_line(muted, vec![(fl!("label-wind"), wind_val)]));
+                        if let Some(chance) = day.precip_chance {
+                            detail_col = detail_col.push(stat_line(
+                                muted,
+                                vec![(fl!("label-precipitation"), format!("{chance}%"))],
+                            ));
+                        }
                     }
 
                     // 4. Sunrise / sunset

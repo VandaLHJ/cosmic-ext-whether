@@ -67,6 +67,7 @@ aqi-cat-extremely-poor = Extremely Poor
 ##About
 app-title = Whether
 about = About
-about-summary = Data from Open-Meteo, NWS & JMA via weathervane
+about-summary = Data from Open-Meteo, NWS & JMA
+about-summary-2 = via weathervane
 about-homepage = Homepage
 about-issues = Report an issue

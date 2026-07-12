@@ -805,18 +805,17 @@ impl AppModel {
             .size(64);
         let name = widget::text::title4(fl!("app-title"));
         let summary = widget::text::caption(fl!("about-summary"));
+        let summary2 = widget::text::caption(fl!("about-summary-2"));
         let version = widget::text::body(format!("v{}", env!("CARGO_PKG_VERSION")));
-        let identity = cosmic::iced::widget::column![icon, name, summary, version]
+        let identity = cosmic::iced::widget::column![icon, name, summary, summary2, version]
             .align_x(Alignment::Center)
             .spacing(4);
 
         let homepage = widget::button::link(fl!("about-homepage"))
-            .trailing_icon(true)
             .on_press(Message::OpenUrl(
                 "https://github.com/nwxnw/cosmic-ext-whether".to_string(),
             ));
         let issues = widget::button::link(fl!("about-issues"))
-            .trailing_icon(true)
             .on_press(Message::OpenUrl(
                 "https://github.com/nwxnw/cosmic-ext-whether/issues".to_string(),
             ));

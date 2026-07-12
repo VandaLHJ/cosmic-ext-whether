@@ -2,7 +2,7 @@ name := 'cosmic-ext-whether'
 export APPID := 'com.github.nwxnw.cosmic-ext-whether'
 
 rootdir := ''
-prefix := '/usr'
+prefix := env_var('HOME') / '.local'
 
 base-dir := absolute_path(clean(rootdir / prefix))
 export INSTALL_DIR := base-dir / 'share'
@@ -33,18 +33,28 @@ run *args:
     cargo build --release {{args}} && RUST_BACKTRACE=1 {{bin-src}}
 
 install:
+    @[ "$(id -u)" -ne 0 ] || [ -n "${BIN_DIR:-}" ] || { echo "Run 'just install' WITHOUT sudo — this is a per-user install." >&2; exit 1; }
     install -Dm0755 {{bin-src}} {{bin_dir}}/{{name}}
     install -Dm0755 {{wrapper-src}} {{bin_dir}}/{{name}}.sh
     install -Dm0644 {{desktop-src}} {{app_dir}}/{{APPID}}.desktop
+    sed -i 's|^Exec=.*|Exec={{bin_dir}}/{{name}}|' {{app_dir}}/{{APPID}}.desktop
     install -Dm0644 {{metainfo-src}} {{metainfo_dir}}/{{APPID}}.metainfo.xml
     install -Dm0644 {{icon-src}} {{icon_dir}}/{{APPID}}-symbolic.svg
 
 uninstall:
+    @[ "$(id -u)" -ne 0 ] || [ -n "${BIN_DIR:-}" ] || { echo "Run 'just uninstall' WITHOUT sudo — this is a per-user install." >&2; exit 1; }
     rm -f {{bin_dir}}/{{name}}
     rm -f {{bin_dir}}/{{name}}.sh
     rm -f {{app_dir}}/{{APPID}}.desktop
     rm -f {{metainfo_dir}}/{{APPID}}.metainfo.xml
     rm -f {{icon_dir}}/{{APPID}}-symbolic.svg
+
+# Remove a legacy system-wide install from the old `sudo just install`
+uninstall-system:
+    rm -f /usr/bin/{{name}} /usr/bin/{{name}}.sh
+    rm -f /usr/share/applications/{{APPID}}.desktop
+    rm -f /usr/share/metainfo/{{APPID}}.metainfo.xml
+    rm -f /usr/share/icons/hicolor/scalable/apps/{{APPID}}-symbolic.svg
 
 clean:
     cargo clean

@@ -650,7 +650,6 @@ impl AppModel {
                 };
 
                 let icon_name = weather_icon_for_period(period);
-                //                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
                 let icon: Element<'_, Message> =
                     cosmic::widget::icon(weather_icon_handle(icon_name))
                         .size(24)
@@ -723,7 +722,6 @@ impl AppModel {
                 let is_expanded = self.expanded_day == Some(i);
 
                 let icon_name = forecast_icon_for_summary(day);
-                //                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
                 let icon: Element<'_, Message> =
                     cosmic::widget::icon(weather_icon_handle(icon_name))
                         .size(24)

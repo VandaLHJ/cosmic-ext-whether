@@ -11,10 +11,12 @@ fn weather_icon_for_period(period: &ForecastPeriod) -> &'static str {
     condition_icon(&period.short_forecast, period.is_daytime)
 }
 
-pub(crate) fn weather_icon_handle(name:&str) -> cosmic::widget::icon::Handle {
+pub(crate) fn weather_icon_handle(name: &str) -> cosmic::widget::icon::Handle {
     macro_rules! bundled {
         ($file:literal) => {
-            cosmic::widget::icon::from_svg_bytes(&include_bytes!(concat!("../icons/", $file, ".svg"))[..])
+            cosmic::widget::icon::from_svg_bytes(
+                &include_bytes!(concat!("../icons/", $file, ".svg"))[..],
+            )
             .symbolic(true)
         };
     }
@@ -290,15 +292,15 @@ impl AppModel {
     fn view_alert_banner(&self) -> Option<Element<'_, Message>> {
         // Alert banner
         if !self.alerts.is_empty() {
-            let alert_icon:Element<'_, Message> =
-            cosmic::widget::icon(weather_icon_handle("weather-severe-alert-symbolic"))
-                .size(24)
-                .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(|theme| {
-                    cosmic::iced::widget::svg::Style {
-                        color: Some(theme.cosmic().background(theme.transparent).on.into()),
-                    }
-                })))
-                .into();
+            let alert_icon: Element<'_, Message> =
+                cosmic::widget::icon(weather_icon_handle("weather-severe-alert-symbolic"))
+                    .size(24)
+                    .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(|theme| {
+                        cosmic::iced::widget::svg::Style {
+                            color: Some(theme.cosmic().background(theme.transparent).on.into()),
+                        }
+                    })))
+                    .into();
 
             let mut alert_col = cosmic::iced::widget::column![].spacing(4);
             let heading_text = fl!("alerts-heading");
@@ -648,7 +650,7 @@ impl AppModel {
                 };
 
                 let icon_name = weather_icon_for_period(period);
-//                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
+                //                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
                 let icon: Element<'_, Message> =
                     cosmic::widget::icon(weather_icon_handle(icon_name))
                         .size(24)
@@ -721,7 +723,7 @@ impl AppModel {
                 let is_expanded = self.expanded_day == Some(i);
 
                 let icon_name = forecast_icon_for_summary(day);
-//                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
+                //                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
                 let icon: Element<'_, Message> =
                     cosmic::widget::icon(weather_icon_handle(icon_name))
                         .size(24)
@@ -865,14 +867,12 @@ impl AppModel {
             .align_x(Alignment::Center)
             .spacing(4);
 
-        let homepage = widget::button::link(fl!("about-homepage"))
-            .on_press(Message::OpenUrl(
-                "https://github.com/nwxnw/cosmic-ext-whether".to_string(),
-            ));
-        let issues = widget::button::link(fl!("about-issues"))
-            .on_press(Message::OpenUrl(
-                "https://github.com/nwxnw/cosmic-ext-whether/issues".to_string(),
-            ));
+        let homepage = widget::button::link(fl!("about-homepage")).on_press(Message::OpenUrl(
+            "https://github.com/nwxnw/cosmic-ext-whether".to_string(),
+        ));
+        let issues = widget::button::link(fl!("about-issues")).on_press(Message::OpenUrl(
+            "https://github.com/nwxnw/cosmic-ext-whether/issues".to_string(),
+        ));
         let links = cosmic::iced::widget::column![homepage, issues]
             .align_x(Alignment::Center)
             .spacing(4);

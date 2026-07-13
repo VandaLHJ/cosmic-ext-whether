@@ -157,16 +157,14 @@ impl cosmic::Application for AppModel {
         let icon_name = self.weather_icon_name();
         let suggested_size = self.core.applet.suggested_size(true);
 
-        let icon:Element<'_, Message> = 
-            cosmic::widget::icon(weather_icon_handle(icon_name))
-                .size(suggested_size.0)
-                .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(|theme| {
-                    cosmic::iced::widget::svg::Style {
-                        color: Some(theme.cosmic().background(theme.transparent).on.into()),
-                    }
-                })))
-                .into();
-
+        let icon: Element<'_, Message> = cosmic::widget::icon(weather_icon_handle(icon_name))
+            .size(suggested_size.0)
+            .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(|theme| {
+                cosmic::iced::widget::svg::Style {
+                    color: Some(theme.cosmic().background(theme.transparent).on.into()),
+                }
+            })))
+            .into();
 
         let content: Element<'_, Message> = if let Some(temp) = self.current_temp_text() {
             let temp_widget = widget::text::body(temp).width(Length::Shrink);

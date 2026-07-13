@@ -11,6 +11,30 @@ fn weather_icon_for_period(period: &ForecastPeriod) -> &'static str {
     condition_icon(&period.short_forecast, period.is_daytime)
 }
 
+pub(crate) fn weather_icon_handle(name:&str) -> cosmic::widget::icon::Handle {
+    macro_rules! bundled {
+        ($file:literal) => {
+            cosmic::widget::icon::from_svg_bytes(&include_bytes!(concat!("../icons/", $file, ".svg"))[..])
+            .symbolic(true)
+        };
+    }
+    match name {
+        "weather-clear-symbolic" => bundled!("weather-clear-symbolic"),
+        "weather-clear-night-symbolic" => bundled!("weather-clear-night-symbolic"),
+        "weather-few-clouds-symbolic" => bundled!("weather-few-clouds-symbolic"),
+        "weather-few-clouds-night-symbolic" => bundled!("weather-few-clouds-night-symbolic"),
+        "weather-overcast-symbolic" => bundled!("weather-overcast-symbolic"),
+        "weather-showers-symbolic" => bundled!("weather-showers-symbolic"),
+        "weathers-showers-scattered-symbolic" => bundled!("weather-showers-scattered-symbolic"),
+        "weather-snow-symbolic" => bundled!("weather-snow-symbolic"),
+        "weather-storm-symbolic" => bundled!("weather-storm-symbolic"),
+        "weather-fog-symbolic" => bundled!("weather-fog-symbolic"),
+        "weather-severe-alert-symbolic" => bundled!("weather-severe-alert-symbolic"),
+        // fallback for any unmapped name
+        _ => cosmic::widget::icon::from_name(name).symbolic(true).into(),
+    }
+}
+
 impl AppModel {
     pub(crate) fn current_temp_text(&self) -> Option<String> {
         // Prefer observation temperature, fall back to first forecast period
@@ -266,9 +290,15 @@ impl AppModel {
     fn view_alert_banner(&self) -> Option<Element<'_, Message>> {
         // Alert banner
         if !self.alerts.is_empty() {
-            let alert_icon = widget::icon::from_name("weather-severe-alert-symbolic")
-                .symbolic(true)
-                .size(24);
+            let alert_icon:Element<'_, Message> =
+            cosmic::widget::icon(weather_icon_handle("weather-severe-alert-symbolic"))
+                .size(24)
+                .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(|theme| {
+                    cosmic::iced::widget::svg::Style {
+                        color: Some(theme.cosmic().background(theme.transparent).on.into()),
+                    }
+                })))
+                .into();
 
             let mut alert_col = cosmic::iced::widget::column![].spacing(4);
             let heading_text = fl!("alerts-heading");
@@ -345,9 +375,15 @@ impl AppModel {
                 )
             };
 
-            let icon = widget::icon::from_name(hero_icon_name)
-                .symbolic(true)
-                .size(28);
+            let icon: Element<'_, Message> =
+                cosmic::widget::icon(weather_icon_handle(hero_icon_name))
+                    .size(28)
+                    .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(|theme| {
+                        cosmic::iced::widget::svg::Style {
+                            color: Some(theme.cosmic().background(theme.transparent).on.into()),
+                        }
+                    })))
+                    .into();
 
             let temp_label = format!("{}°{hero_unit}", hero_temp);
             let temp_btn = widget::button::custom(widget::text::title3(temp_label))
@@ -612,7 +648,16 @@ impl AppModel {
                 };
 
                 let icon_name = weather_icon_for_period(period);
-                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
+//                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
+                let icon: Element<'_, Message> =
+                    cosmic::widget::icon(weather_icon_handle(icon_name))
+                        .size(24)
+                        .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(|theme| {
+                            cosmic::iced::widget::svg::Style {
+                                color: Some(theme.cosmic().background(theme.transparent).on.into()),
+                            }
+                        })))
+                        .into();
 
                 let temp = widget::text::body(format!("{}°", period.temperature));
 
@@ -676,7 +721,16 @@ impl AppModel {
                 let is_expanded = self.expanded_day == Some(i);
 
                 let icon_name = forecast_icon_for_summary(day);
-                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
+//                let icon = widget::icon::from_name(icon_name).symbolic(true).size(24);
+                let icon: Element<'_, Message> =
+                    cosmic::widget::icon(weather_icon_handle(icon_name))
+                        .size(24)
+                        .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(|theme| {
+                            cosmic::iced::widget::svg::Style {
+                                color: Some(theme.cosmic().background(theme.transparent).on.into()),
+                            }
+                        })))
+                        .into();
 
                 let name_text = widget::text::body(day.name.clone()).width(Length::Fill);
 

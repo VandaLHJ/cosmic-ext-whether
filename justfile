@@ -20,6 +20,7 @@ desktop-src := 'data' / desktop
 metainfo-src := 'data' / APPID + '.metainfo.xml'
 wrapper-src := 'data' / APPID + '.sh'
 icon-src := 'data' / APPID + '-symbolic.svg'
+app-icon-src := 'data' / APPID + '.svg'
 
 default: build-release
 
@@ -40,6 +41,7 @@ install:
     sed -i 's|^Exec=.*|Exec={{bin_dir}}/{{name}}|' {{app_dir}}/{{APPID}}.desktop
     install -Dm0644 {{metainfo-src}} {{metainfo_dir}}/{{APPID}}.metainfo.xml
     install -Dm0644 {{icon-src}} {{icon_dir}}/{{APPID}}-symbolic.svg
+    install -Dm0644 {{app-icon-src}} {{icon_dir}}/{{APPID}}.svg
 
 uninstall:
     @[ "$(id -u)" -ne 0 ] || [ -n "${BIN_DIR:-}" ] || { echo "Run 'just uninstall' WITHOUT sudo — this is a per-user install." >&2; exit 1; }
@@ -48,6 +50,7 @@ uninstall:
     rm -f {{app_dir}}/{{APPID}}.desktop
     rm -f {{metainfo_dir}}/{{APPID}}.metainfo.xml
     rm -f {{icon_dir}}/{{APPID}}-symbolic.svg
+    rm -f {{icon_dir}}/{{APPID}}.svg
 
 # Remove a legacy system-wide install from the old `sudo just install`
 uninstall-system:
@@ -55,6 +58,7 @@ uninstall-system:
     rm -f /usr/share/applications/{{APPID}}.desktop
     rm -f /usr/share/metainfo/{{APPID}}.metainfo.xml
     rm -f /usr/share/icons/hicolor/scalable/apps/{{APPID}}-symbolic.svg
+    rm -f /usr/share/icons/hicolor/scalable/apps/{{APPID}}.svg
 
 clean:
     cargo clean

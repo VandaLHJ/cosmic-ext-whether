@@ -3,12 +3,32 @@
   <id>com.github.nwxnw.cosmic-ext-whether</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
+  <developer id="com.github.nwxnw">
+    <name>nwxnw</name>
+  </developer>
   <name>Whether</name>
-  <summary>Weather applet for COSMIC</summary>
+  <summary>Weather forecasts, air quality, and alerts for the COSMIC panel</summary>
   <description>
-    <p>A COSMIC panel applet for weather forecasts. Supports NWS (US) and Open-Meteo (worldwide) weather sources with hourly and daily forecasts, location search, and configurable units.</p>
+    <p>Whether is a weather applet for the COSMIC desktop panel, showing current conditions, hourly and 7-day forecasts, air quality, and weather alerts for locations worldwide.</p>
+    <p>Weather data is sourced automatically by location via weathervane — NWS in the United States, JMA in Japan, and Open-Meteo elsewhere.</p>
+    <p>Features include:</p>
+    <ul>
+      <li>Current conditions: temperature, feels-like, humidity, wind and gusts, precipitation, AQI, and UV index</li>
+      <li>Expandable detail: dew point, pressure, and the pollutant breakdown (PM2.5, PM10, ozone)</li>
+      <li>Hourly and 7-day forecasts, with per-day wind, precipitation, and sunrise/sunset</li>
+      <li>Worldwide weather alerts</li>
+      <li>Location search with multiple saved locations</li>
+      <li>Imperial/metric unit toggle</li>
+    </ul>
   </description>
-  <icon type="stock">com.github.nwxnw.cosmic-ext-whether-symbolic</icon>
+  <keywords>
+    <keyword>weather</keyword>
+    <keyword>forecast</keyword>
+    <keyword>temperature</keyword>
+    <keyword>air quality</keyword>
+    <keyword>COSMIC</keyword>
+  </keywords>
+  <url type="vcs-browser">https://github.com/nwxnw/cosmic-ext-whether</url>
   <launchable type="desktop-id">com.github.nwxnw.cosmic-ext-whether.desktop</launchable>
   <url type="homepage">https://github.com/nwxnw/cosmic-ext-whether</url>
   <url type="bugtracker">https://github.com/nwxnw/cosmic-ext-whether/issues</url>
@@ -27,10 +47,25 @@
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/nwxnw/cosmic-ext-whether/master/screenshots/whether.png</image>
-      <caption>Weather forecast popup</caption>
+      <caption>Current conditions and forecast with imperial units (United States)</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/nwxnw/cosmic-ext-whether/master/screenshots/whether-eu.png</image>
+      <caption>Active weather alert with metric units (Germany)</caption>
     </screenshot>
   </screenshots>
   <releases>
+    <release version="0.3.0" date="2026-07-14">
+      <description>
+        <ul>
+          <li>Adopted weathervane backend for global weather data sources</li>
+          <li>Added air quality (AQI) and pollutants</li>
+          <li>Added pressure, dew point, UV index, and sunrise/sunset</li>
+          <li>Added worldwide weather alerts</li>
+          <li>Added About page</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-04-14">
       <description>
         <p>Updated COSMIC/libcosmic dependencies, added Swedish localization.</p>

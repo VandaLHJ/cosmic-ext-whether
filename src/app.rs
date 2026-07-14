@@ -48,6 +48,7 @@ pub struct AppModel {
     pub(crate) last_updated: Option<std::time::Instant>,
     pub(crate) location_names: Vec<String>,
     pub(crate) alerts: Vec<WeatherAlert>,
+    pub(crate) fetch_generation: u64,
 }
 
 /// Number of hourly columns visible at once between the arrow buttons.
@@ -76,6 +77,7 @@ impl Default for AppModel {
             last_updated: None,
             location_names: Vec::new(),
             alerts: Vec::new(),
+            fetch_generation: 0,
         }
     }
 }
@@ -85,7 +87,7 @@ pub enum Message {
     PopupClosed(Id),
     Surface(cosmic::surface::Action),
     FetchWeather,
-    WeatherFetched(Box<Result<WeatherResult, String>>),
+    WeatherFetched(u64, Box<Result<WeatherResult, String>>),
     Tick(()),
     SearchInput(String),
     SearchSubmit,
@@ -143,8 +145,7 @@ impl cosmic::Application for AppModel {
         };
 
         let task = if app.config.active_location().is_some() {
-            app.fetch_state = FetchState::Loading;
-            fetch_weather_task(&app.config)
+            app.start_fetch()
         } else {
             Task::none()
         };
@@ -244,51 +245,54 @@ impl cosmic::Application for AppModel {
                 }
             }
             Message::FetchWeather => {
-                self.fetch_state = FetchState::Loading;
-                return fetch_weather_task(&self.config);
+                return self.start_fetch();
             }
-            Message::WeatherFetched(result) => match *result {
-                Ok(result) => {
-                    self.fetch_state = FetchState::Loaded;
-                    self.last_updated = Some(std::time::Instant::now());
+            Message::WeatherFetched(generation, result) => {
+                if generation != self.fetch_generation {
+                    return Task::none();
+                }
+                match *result {
+                    Ok(result) => {
+                        self.fetch_state = FetchState::Loaded;
+                        self.last_updated = Some(std::time::Instant::now());
 
-                    let old_config = self.config.clone();
-                    let idx = self.config.active_location_index;
-                    if let Some(loc) = self.config.locations.get_mut(idx) {
-                        if let Some(grid) = result.cached_grid {
-                            loc.cached_grid = Some(grid);
+                        let old_config = self.config.clone();
+                        let idx = self.config.active_location_index;
+                        if let Some(loc) = self.config.locations.get_mut(idx) {
+                            if let Some(grid) = result.cached_grid {
+                                loc.cached_grid = Some(grid);
+                            }
+                            if loc.name.is_empty() && !result.forecast.location_name.is_empty() {
+                                loc.name = result.forecast.location_name.clone();
+                            }
                         }
-                        if loc.name.is_empty() && !result.forecast.location_name.is_empty() {
-                            loc.name = result.forecast.location_name.clone();
+                        self.location_names = self
+                            .config
+                            .locations
+                            .iter()
+                            .map(|l| l.name.clone())
+                            .collect();
+
+                        self.alerts = result.alerts;
+                        self.observation = result.observation;
+                        self.air_quality = result.air_quality;
+                        self.hourly_offset = 0;
+                        self.expanded_day = None;
+                        self.forecast = Some(result.forecast);
+                        if self.config != old_config {
+                            config::save_config(&self.config_handle, &self.config);
                         }
                     }
-                    self.location_names = self
-                        .config
-                        .locations
-                        .iter()
-                        .map(|l| l.name.clone())
-                        .collect();
-
-                    self.alerts = result.alerts;
-                    self.observation = result.observation;
-                    self.air_quality = result.air_quality;
-                    self.hourly_offset = 0;
-                    self.expanded_day = None;
-                    self.forecast = Some(result.forecast);
-                    if self.config != old_config {
-                        config::save_config(&self.config_handle, &self.config);
+                    Err(e) => {
+                        self.fetch_state = FetchState::Error(e);
                     }
                 }
-                Err(e) => {
-                    self.fetch_state = FetchState::Error(e);
-                }
-            },
+            }
             Message::Tick(_) => {
                 if self.config.active_location().is_some()
                     && !matches!(self.fetch_state, FetchState::Loading)
                 {
-                    self.fetch_state = FetchState::Loading;
-                    return fetch_weather_task(&self.config);
+                    return self.start_fetch();
                 }
             }
             Message::SearchInput(input) => {
@@ -346,8 +350,7 @@ impl cosmic::Application for AppModel {
                     self.search_input.clear();
                     self.search_done = false;
                     self.current_expanded = false;
-                    self.fetch_state = FetchState::Loading;
-                    return fetch_weather_task(&self.config);
+                    return self.start_fetch();
                 }
             }
 
@@ -367,8 +370,7 @@ impl cosmic::Application for AppModel {
                     self.air_quality = None;
                     self.current_expanded = false;
                     self.alerts.clear();
-                    self.fetch_state = FetchState::Loading;
-                    return fetch_weather_task(&self.config);
+                    return self.start_fetch();
                 }
             }
             Message::AddLocation => {
@@ -397,7 +399,6 @@ impl cosmic::Application for AppModel {
                         self.air_quality = None;
                         self.current_expanded = false;
                         self.alerts.clear();
-                        self.fetch_state = FetchState::Loading;
                         self.location_names = self
                             .config
                             .locations
@@ -405,7 +406,7 @@ impl cosmic::Application for AppModel {
                             .map(|l| l.name.clone())
                             .collect();
                         config::save_config(&self.config_handle, &self.config);
-                        return fetch_weather_task(&self.config);
+                        return self.start_fetch();
                     } else if idx < self.config.active_location_index {
                         self.config.active_location_index -= 1;
                     }
@@ -445,8 +446,7 @@ impl cosmic::Application for AppModel {
                 self.config.use_fahrenheit = !self.config.use_fahrenheit;
                 config::save_config(&self.config_handle, &self.config);
                 if self.config.active_location().is_some() {
-                    self.fetch_state = FetchState::Loading;
-                    return fetch_weather_task(&self.config);
+                    return self.start_fetch();
                 }
             }
             Message::BackToMain => {
@@ -462,12 +462,11 @@ impl cosmic::Application for AppModel {
             }
             Message::ConfigChanged(new_config) => {
                 let location_changed =
-                    self.config.active_location() != new_config.active_location();
+                    active_identity(&self.config) != active_identity(&new_config);
                 let units_changed = self.config.use_fahrenheit != new_config.use_fahrenheit;
                 self.config = new_config;
                 if (location_changed || units_changed) && self.config.active_location().is_some() {
-                    self.fetch_state = FetchState::Loading;
-                    return fetch_weather_task(&self.config);
+                    return self.start_fetch();
                 }
             }
             Message::OpenAbout => {
@@ -509,7 +508,24 @@ impl cosmic::Application for AppModel {
     }
 }
 
-fn fetch_weather_task(config: &WhetherConfig) -> Task<Message> {
+impl AppModel {
+    /// Bump the fetch generation, mark loading, and dispatch a fetch for the active
+    /// location. Central choke point so every dispatch site stamps the generation
+    fn start_fetch(&mut self) -> Task<Message> {
+        self.fetch_generation = self.fetch_generation.wrapping_add(1);
+        self.fetch_state = FetchState::Loading;
+        fetch_weather_task(&self.config, self.fetch_generation)
+    }
+}
+
+/// The fields that actually determine "which" weather to fetch. Excludes cached_grid/name
+/// so back-filling the grid caches doesn't read as a location change (breaks the self-watch loop).
+fn active_identity(cfg: &WhetherConfig) -> Option<(&str, &str)> {
+    cfg.active_location()
+        .map(|l| (l.lat.as_str(), l.lon.as_str()))
+}
+
+fn fetch_weather_task(config: &WhetherConfig, generation: u64) -> Task<Message> {
     if let Some(loc) = config.active_location() {
         let lat = loc.lat.clone();
         let lon = loc.lon.clone();
@@ -522,7 +538,9 @@ fn fetch_weather_task(config: &WhetherConfig) -> Task<Message> {
         // into WeatherResult inside backend::fetch_weather.
         Task::perform(
             backend::fetch_weather(lat, lon, use_fahrenheit, country_code, cached_grid, name),
-            |result| cosmic::Action::App(Message::WeatherFetched(Box::new(result))),
+            move |result| {
+                cosmic::Action::App(Message::WeatherFetched(generation, Box::new(result)))
+            },
         )
     } else {
         Task::none()

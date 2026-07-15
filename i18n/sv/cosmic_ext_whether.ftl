@@ -61,14 +61,14 @@ aqi-cat-unhealthy-sensitive = Ohälsosamt för känsliga grupper
 aqi-cat-unhealthy = Ohälsosamt
 aqi-cat-very-unhealthy = Väldigt ohälsosamt
 aqi-cat-hazardous = Farligt
-aqi-cat-fair = Rättvist
+aqi-cat-fair = Skäligt
 aqi-cat-poor = Dåligt
 aqi-cat-very-poor = Väldigt dåligt
 aqi-cat-extremely-poor = Extremt dåligt
 
 ## Om sida 
 ##Om
-app-title = Väder
+app-title = Whether
 about = Om
 about-summary = Data från Open-Meteo, NWS & JMA
 about-summary-2 = via weathervane

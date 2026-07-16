@@ -31,13 +31,13 @@ Download the latest release from the [Releases](https://github.com/nwxnw/cosmic-
 ### Debian/Ubuntu (.deb)
 
 ```sh
-sudo apt install ./cosmic-ext-whether_0.3.0_amd64.deb
+sudo apt install ./cosmic-ext-whether_0.3.1_amd64.deb
 ```
 
 ### Flatpak
 
 ```sh
-flatpak install --user ./cosmic-ext-whether_0.3.0.flatpak
+flatpak install --user ./cosmic-ext-whether_0.3.1.flatpak
 ```
 
 ### From source

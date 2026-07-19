@@ -16,7 +16,7 @@ A weather applet for the [COSMIC](https://github.com/pop-os/cosmic-epoch) deskto
 - **Worldwide weather alerts**, shown inline when active
 - **Hourly and 7-day forecasts** - click any day to expand its detailed forecast, wind, precipitation, and
   sunrise/sunset
-- **Automatic data sourcing by location** via [weathervane](https://gitlab.com/vintagetechie/weathervane):
+- **Automatic data sourcing by location** via [weathervane](https://github.com/crenshawdev/weathervane):
   - **NWS** (National Weather Service) - US locations, free, no API key
   - **Open-Meteo** - worldwide, free ([CC BY 4.0](https://open-meteo.com/en/license))
   - **JMA** - Japan, free

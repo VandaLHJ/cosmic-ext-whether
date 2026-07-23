@@ -1,10 +1,22 @@
 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M 8.42 10.77 A 4.6 4.6 0 1 1 11.30 6.34" stroke="#232323" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <g stroke="#232323" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <line x1="6.7" y1="0.40" x2="6.7" y2="0.70"/>
-    <line x1="6.7" y1="0.40" x2="6.7" y2="0.70" transform="rotate(45 6.7 6.5)"/>
-    <line x1="6.7" y1="0.40" x2="6.7" y2="0.70" transform="rotate(270 6.7 6.5)"/>
-    <line x1="6.7" y1="0.40" x2="6.7" y2="0.70" transform="rotate(315 6.7 6.5)"/>
+  <defs>
+    <mask id="cc" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16">
+      <rect x="0" y="0" width="16" height="16" fill="white"/>
+      <path transform="translate(2.10 2.93) scale(0.95)" d="M 4.4 10.8 A 1.8 1.8 0 0 1 4.6 7.4 A 2.4 2.4 0 0 1 9.2 6.2 A 1.7 1.7 0 0 1 11.6 8.0 A 1.6 1.6 0 0 1 11.6 10.8 Z" fill="black" stroke="black" stroke-width="2.8" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <g mask="url(#cc)">
+    <circle cx="8" cy="8" r="4.8" stroke="#232323" stroke-width="1.2"/>
+    <g stroke="#232323" stroke-width="1.2" stroke-linecap="round">
+      <line x1="8" y1="1.2" x2="8" y2="1.5"/>
+      <line x1="8" y1="1.2" x2="8" y2="1.5" transform="rotate(45 8 8)"/>
+      <line x1="8" y1="1.2" x2="8" y2="1.5" transform="rotate(90 8 8)"/>
+      <line x1="8" y1="1.2" x2="8" y2="1.5" transform="rotate(135 8 8)"/>
+      <line x1="8" y1="1.2" x2="8" y2="1.5" transform="rotate(180 8 8)"/>
+      <line x1="8" y1="1.2" x2="8" y2="1.5" transform="rotate(225 8 8)"/>
+      <line x1="8" y1="1.2" x2="8" y2="1.5" transform="rotate(270 8 8)"/>
+      <line x1="8" y1="1.2" x2="8" y2="1.5" transform="rotate(315 8 8)"/>
+    </g>
   </g>
-  <path transform="translate(5.1 5.05) scale(0.68)" d="M 4.4 10.8 A 1.8 1.8 0 0 1 4.6 7.4 A 2.4 2.4 0 0 1 9.2 6.2 A 1.7 1.7 0 0 1 11.6 8.0 A 1.6 1.6 0 0 1 11.6 10.8 Z" stroke="#232323" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path transform="translate(2.10 2.93) scale(0.95)" d="M 4.4 10.8 A 1.8 1.8 0 0 1 4.6 7.4 A 2.4 2.4 0 0 1 9.2 6.2 A 1.7 1.7 0 0 1 11.6 8.0 A 1.6 1.6 0 0 1 11.6 10.8 Z" stroke="#232323" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

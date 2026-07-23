@@ -1,4 +1,12 @@
 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <g transform="translate(-0.4 -0.3)"><path d="M 10.7 4.1 A 4.6 4.6 0 1 0 10.7 11.9 A 2.7 2.7 0 1 1 10.7 4.1 Z" stroke="#232323" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></g>
-  <path transform="translate(5.1 5.0) scale(0.68)" d="M 4.4 10.8 A 1.8 1.8 0 0 1 4.6 7.4 A 2.4 2.4 0 0 1 9.2 6.2 A 1.7 1.7 0 0 1 11.6 8.0 A 1.6 1.6 0 0 1 11.6 10.8 Z" stroke="#232323" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <mask id="cc" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16">
+      <rect x="0" y="0" width="16" height="16" fill="white"/>
+      <path transform="translate(2.10 2.93) scale(0.95)" d="M 4.4 10.8 A 1.8 1.8 0 0 1 4.6 7.4 A 2.4 2.4 0 0 1 9.2 6.2 A 1.7 1.7 0 0 1 11.6 8.0 A 1.6 1.6 0 0 1 11.6 10.8 Z" fill="black" stroke="black" stroke-width="2.8" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <g mask="url(#cc)">
+    <path transform="translate(0.246 -0.64) scale(1.08)" d="M 10.7 4.1 A 4.6 4.6 0 1 0 10.7 11.9 A 2.7 2.7 0 1 1 10.7 4.1 Z" stroke="#232323" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <path transform="translate(2.10 2.93) scale(0.95)" d="M 4.4 10.8 A 1.8 1.8 0 0 1 4.6 7.4 A 2.4 2.4 0 0 1 9.2 6.2 A 1.7 1.7 0 0 1 11.6 8.0 A 1.6 1.6 0 0 1 11.6 10.8 Z" stroke="#232323" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

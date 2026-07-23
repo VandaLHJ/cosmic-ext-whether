@@ -615,14 +615,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "build_helpers"
-version = "0.14.0"
-source = "git+https://github.com/pop-os/libcosmic#ef162b8e16ba4493e05c169cd56c7b9f77f0fda5"
-dependencies = [
- "cfg_aliases",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -960,7 +952,7 @@ dependencies = [
 
 [[package]]
 name = "cosmic-ext-whether"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "chrono",
  "i18n-embed",
@@ -2254,7 +2246,6 @@ name = "iced"
 version = "0.14.0"
 source = "git+https://github.com/pop-os/libcosmic#ef162b8e16ba4493e05c169cd56c7b9f77f0fda5"
 dependencies = [
- "build_helpers",
  "dnd",
  "iced_accessibility",
  "iced_core",
@@ -2286,7 +2277,6 @@ version = "0.14.0"
 source = "git+https://github.com/pop-os/libcosmic#ef162b8e16ba4493e05c169cd56c7b9f77f0fda5"
 dependencies = [
  "bitflags 2.11.0",
- "build_helpers",
  "bytes",
  "cosmic-client-toolkit",
  "dnd",
@@ -2377,7 +2367,6 @@ name = "iced_runtime"
 version = "0.14.0"
 source = "git+https://github.com/pop-os/libcosmic#ef162b8e16ba4493e05c169cd56c7b9f77f0fda5"
 dependencies = [
- "build_helpers",
  "bytes",
  "cosmic-client-toolkit",
  "dnd",
@@ -2412,7 +2401,6 @@ source = "git+https://github.com/pop-os/libcosmic#ef162b8e16ba4493e05c169cd56c7b
 dependencies = [
  "as-raw-xcb-connection",
  "bitflags 2.11.0",
- "build_helpers",
  "bytemuck",
  "cosmic-client-toolkit",
  "cryoglyph",
@@ -2442,7 +2430,6 @@ name = "iced_widget"
 version = "0.14.2"
 source = "git+https://github.com/pop-os/libcosmic#ef162b8e16ba4493e05c169cd56c7b9f77f0fda5"
 dependencies = [
- "build_helpers",
  "cosmic-client-toolkit",
  "dnd",
  "iced_renderer",
@@ -2461,7 +2448,6 @@ name = "iced_winit"
 version = "0.14.0"
 source = "git+https://github.com/pop-os/libcosmic#ef162b8e16ba4493e05c169cd56c7b9f77f0fda5"
 dependencies = [
- "build_helpers",
  "cosmic-client-toolkit",
  "cursor-icon",
  "dnd",
@@ -2896,7 +2882,6 @@ dependencies = [
  "apply",
  "ashpd 0.12.3",
  "auto_enums",
- "build_helpers",
  "cosmic-client-toolkit",
  "cosmic-config",
  "cosmic-freedesktop-icons",

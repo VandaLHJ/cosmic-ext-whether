@@ -55,6 +55,14 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version=".3.2" date="2026-07-23">
+      <description>
+        <ul>
+          <li>Refreshed weather-condition icons + app icon</li>
+          <li>weathervane sourced from crates.io</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.3.1" date="2026-07-16">
       <description>
         <ul>

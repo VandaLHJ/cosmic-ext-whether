@@ -6,6 +6,12 @@ NAME=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')
 VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
 APPID=com.github.nwxnw.cosmic-ext-whether
 
+# .cargo/config.toml is a transient build input: while it exists, every cargo command in this
+# repo resolves from vendor/ instead of crates.io (so `cargo update` fails). Drop it on exit --
+# registered before it's created so `set -e` can't leave it behind. vendor/ is inert without it.
+cleanup() { rm -f .cargo/config.toml; }
+trap cleanup EXIT
+
 # Build release binary (also needed for cargo vendor to resolve all deps)
 cargo build --release
 

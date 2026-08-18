@@ -45,7 +45,7 @@ alerts-heading = Active Alerts
 updated-ago = Updated {$minutes} min ago
 updated-now = Updated just now
 
-## Reverence - UV levels
+## Reference - UV levels
 uv-level-low = Low
 uv-level-moderate = Moderate
 uv-level-high = High

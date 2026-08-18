@@ -45,7 +45,7 @@ alerts-heading = Aktywne alerty
 updated-ago = Zaktualizowano {$minutes} min. temu
 updated-now = Zaktualizowano przed chwilą
 
-## Reverence - UV levels
+## Reference - UV levels
 uv-level-low = Niski
 uv-level-moderate = Średni
 uv-level-high = Wysoki

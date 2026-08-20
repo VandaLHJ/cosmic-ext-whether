@@ -36,7 +36,7 @@ pub struct CurrentObservation {
     pub temperature_unit: String,
     pub condition: Option<weathervane::WeatherCondition>,
     pub wind_speed: Option<String>,
-    pub wind_direction: Option<String>,
+    pub compass: Option<weathervane::CompassDirection>,
     pub humidity: Option<i32>,
     pub is_daytime: bool,
     pub feels_like: Option<i32>,
@@ -108,6 +108,8 @@ pub struct ForecastPeriod {
     pub temperature_unit: String,
     pub wind_speed: String,
     pub wind_direction: String,
+    #[serde(skip)]
+    pub compass: Option<weathervane::CompassDirection>,
     pub short_forecast: String,
     pub detailed_forecast: String,
     pub is_daytime: bool,
@@ -179,6 +181,7 @@ pub struct DaySummary {
     pub is_daytime: bool,
     pub wind_speed: String,
     pub wind_direction: String,
+    pub compass: Option<weathervane::CompassDirection>,
     pub precip_chance: Option<i32>,
     pub condition: Option<weathervane::WeatherCondition>,
     pub detailed_forecast: String,
@@ -213,6 +216,7 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
                 is_daytime: true,
                 wind_speed: period.wind_speed.clone(),
                 wind_direction: period.wind_direction.clone(),
+                compass: period.compass,
                 precip_chance: period
                     .probability_of_precipitation
                     .as_ref()
@@ -236,6 +240,7 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
                 is_daytime: false,
                 wind_speed: period.wind_speed.clone(),
                 wind_direction: period.wind_direction.clone(),
+                compass: period.compass,
                 precip_chance: period
                     .probability_of_precipitation
                     .as_ref()

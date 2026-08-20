@@ -354,8 +354,8 @@ impl AppModel {
                     .condition
                     .map(|c| condition_icon_for(c, obs.is_daytime))
                     .unwrap_or_else(|| weather_icon_for_period(current));
-                let wind = match (&obs.wind_speed, &obs.wind_direction) {
-                    (Some(speed), Some(dir)) => Some(format!("{speed} {dir}")),
+                let wind = match (&obs.wind_speed, obs.compass) {
+                    (Some(speed), Some(dir)) => Some(format!("{speed} {}", compass_label(dir))),
                     _ => None,
                 };
                 (
@@ -368,7 +368,11 @@ impl AppModel {
                     obs.feels_like,
                 )
             } else {
-                let wind = format!("{} {}", current.wind_speed, current.wind_direction);
+                let dir = current
+                    .compass
+                    .map(compass_label)
+                    .unwrap_or_else(|| current.wind_direction.clone());
+                let wind = format!("{} {}", current.wind_speed, dir);
                 (
                     current.temperature,
                     current.temperature_unit.clone(),
@@ -405,7 +409,8 @@ impl AppModel {
             let hero_wind_dir = self
                 .observation
                 .as_ref()
-                .and_then(|o| o.wind_direction.clone());
+                .and_then(|o| o.compass)
+                .map(compass_label);
 
             let mut hero_content = cosmic::iced::widget::column![icon_temp_row]
                 .spacing(2)
@@ -784,7 +789,11 @@ impl AppModel {
                     // 2. Wind + Precip - structured stats. OM only: NWS prose already
                     // narrates wind/precip
                     if !has_prose {
-                        let wind_val = format!("{} {}", day.wind_speed, day.wind_direction);
+                        let dir = day
+                            .compass
+                            .map(compass_label)
+                            .unwrap_or_else(|| day.wind_direction.clone());
+                        let wind_val = format!("{} {}", day.wind_speed, dir);
                         detail_col =
                             detail_col.push(stat_line(muted, vec![(fl!("label-wind"), wind_val)]));
                         if let Some(chance) = day.precip_chance {
@@ -1061,6 +1070,20 @@ fn aqi_category_label(c: weathervane::AqiCategory) -> String {
         AqiCategory::Eu(Eu::Poor) => fl!("aqi-cat-poor"),
         AqiCategory::Eu(Eu::VeryPoor) => fl!("aqi-cat-very-poor"),
         AqiCategory::Eu(Eu::ExtremelyPoor) => fl!("aqi-cat-extremely-poor"),
+    }
+}
+
+fn compass_label(d: weathervane::CompassDirection) -> String {
+    use weathervane::CompassDirection as D;
+    match d {
+        D::N => fl!("compass-n"),
+        D::NE => fl!("compass-ne"),
+        D::E => fl!("compass-e"),
+        D::SE => fl!("compass-se"),
+        D::S => fl!("compass-s"),
+        D::SW => fl!("compass-sw"),
+        D::W => fl!("compass-w"),
+        D::NW => fl!("compass-nw"),
     }
 }
 

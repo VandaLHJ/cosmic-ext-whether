@@ -82,6 +82,19 @@ condition-thunderstorm = Thunderstorm
 condition-thunderstorm-hail = Thunderstorm with hail
 condition-unknown = Unknown
 
+## Reference - compass directions
+## ABBREVIATIONS, not words. Use your locale's conventional short form
+## (Swedish NE = "NO", not "Nordost")
+## These render inline in the wind line of a 360px popup so should be short
+compass-n = N
+compass-ne = NE
+compass-e = E
+compass-se = SE
+compass-s = S
+compass-sw = SW
+compass-w = W
+compass-nw = NW
+
 ##About
 app-title = Whether
 about = About

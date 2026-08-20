@@ -34,7 +34,6 @@ pub struct WeatherResult {
 pub struct CurrentObservation {
     pub temperature: Option<i32>,
     pub temperature_unit: String,
-    pub condition_text: Option<String>,
     pub condition: Option<weathervane::WeatherCondition>,
     pub wind_speed: Option<String>,
     pub wind_direction: Option<String>,

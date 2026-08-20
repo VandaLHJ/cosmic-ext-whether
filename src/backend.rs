@@ -120,7 +120,6 @@ fn build_daily_periods(
     let mut periods = Vec::with_capacity(daily.len() * 2);
     for (i, d) in daily.iter().enumerate() {
         let day_name = date_to_day_name(&d.date, i == 0);
-        let description = condition_label(&d.condition).to_string();
         let wind_dir = d.compass_direction.as_str().to_string();
         let wind_speed = format!("{:.0} {speed_unit}", d.windspeed_max);
         let precip = d.precipitation_probability_max.map(|v| v as f64);
@@ -133,8 +132,8 @@ fn build_daily_periods(
             temperature_unit: unit.to_string(),
             wind_speed: wind_speed.clone(),
             wind_direction: wind_dir.clone(),
-            short_forecast: description.clone(),
-            detailed_forecast: description.clone(),
+            short_forecast: String::new(),
+            detailed_forecast: String::new(),
             is_daytime: true,
             probability_of_precipitation: Some(PrecipValue { value: precip }),
             start_time: Some(format!("{}T12:00:00", d.date)),
@@ -153,8 +152,8 @@ fn build_daily_periods(
             temperature_unit: unit.to_string(),
             wind_speed,
             wind_direction: wind_dir,
-            short_forecast: description.clone(),
-            detailed_forecast: description,
+            short_forecast: String::new(),
+            detailed_forecast: String::new(),
             is_daytime: false,
             probability_of_precipitation: Some(PrecipValue { value: precip }),
             start_time: Some(format!("{}T00:00:00", d.date)),
@@ -172,7 +171,6 @@ fn build_hourly_periods(
     hourly
         .iter()
         .map(|h| {
-            let description = condition_label(&h.condition).to_string();
             ForecastPeriod {
                 name: String::new(),
                 condition: Some(h.condition),
@@ -180,8 +178,8 @@ fn build_hourly_periods(
                 temperature_unit: unit.to_string(),
                 wind_speed: format!("{:.0} {speed_unit}", h.windspeed),
                 wind_direction: String::new(), //HourlyForecast carries no wind direction
-                short_forecast: description.clone(),
-                detailed_forecast: description,
+                short_forecast: String::new(),
+                detailed_forecast: String::new(),
                 is_daytime: hour_is_daytime(&h.time, daily),
                 probability_of_precipitation: Some(PrecipValue {
                     value: Some(h.precipitation_probability as f64),
@@ -208,7 +206,6 @@ fn build_observation(
         temperature: Some(cur.temperature.round() as i32),
         temperature_unit: unit.to_string(),
         condition: Some(cur.condition),
-        condition_text: Some(condition_label(&cur.condition).to_string()),
         wind_speed: Some(format!("{:.0} {speed_unit}", cur.windspeed)),
         wind_direction: Some(cur.compass_direction.as_str().to_string()),
         humidity: Some(cur.humidity),
@@ -278,29 +275,5 @@ fn aqi_severity_index(c: &weathervane::AqiCategory) -> u8 {
         AqiCategory::Us(Us::Unhealthy) | AqiCategory::Eu(Eu::Poor) => 3,
         AqiCategory::Us(Us::VeryUnhealthy) | AqiCategory::Eu(Eu::VeryPoor) => 4,
         AqiCategory::Us(Us::Hazardous) | AqiCategory::Eu(Eu::ExtremelyPoor) => 5,
-    }
-}
-
-/// Human-readable label for a weathervane condition. Day/night is applied
-/// downstream via `is_daytime`, so there's no day/night text split here.
-fn condition_label(c: &weathervane::WeatherCondition) -> &'static str {
-    use weathervane::WeatherCondition as C;
-    match c {
-        C::ClearSky => "Clear sky",
-        C::MainlyClear => "Mainly clear",
-        C::PartlyCloudy => "Partly cloudy",
-        C::Overcast => "Overcast",
-        C::Foggy => "Fog",
-        C::Drizzle => "Drizzle",
-        C::FreezingDrizzle => "Freezing drizzle",
-        C::Rain => "Rain",
-        C::FreezingRain => "Freezing rain",
-        C::Snow => "Snow",
-        C::SnowGrains => "Snow grains",
-        C::RainShowers => "Rain showers",
-        C::SnowShowers => "Snow showers",
-        C::Thunderstorm => "Thunderstorm",
-        C::ThunderstormHail => "Thunderstorm with hail",
-        C::Unknown => "Unknown",
     }
 }

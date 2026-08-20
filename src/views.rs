@@ -347,8 +347,8 @@ impl AppModel {
                 let temp = obs.temperature.unwrap_or(current.temperature);
                 let unit = &obs.temperature_unit;
                 let cond = obs
-                    .condition_text
-                    .clone()
+                    .condition
+                    .map(condition_label)
                     .unwrap_or_else(|| current.short_forecast.clone());
                 let icon = obs
                     .condition
@@ -771,12 +771,14 @@ impl AppModel {
 
                     // 1. Summary / prose - leads (bare, full-strength body text)
                     let summary = if has_prose {
-                        &day.detailed_forecast
+                        day.detailed_forecast.clone()
                     } else {
-                        &day.short_forecast
+                        day.condition
+                            .map(condition_label)
+                            .unwrap_or_else(|| day.short_forecast.clone())
                     };
                     if !summary.is_empty() {
-                        detail_col = detail_col.push(widget::text::body(summary.clone()));
+                        detail_col = detail_col.push(widget::text::body(summary));
                     }
 
                     // 2. Wind + Precip - structured stats. OM only: NWS prose already
@@ -1059,5 +1061,27 @@ fn aqi_category_label(c: weathervane::AqiCategory) -> String {
         AqiCategory::Eu(Eu::Poor) => fl!("aqi-cat-poor"),
         AqiCategory::Eu(Eu::VeryPoor) => fl!("aqi-cat-very-poor"),
         AqiCategory::Eu(Eu::ExtremelyPoor) => fl!("aqi-cat-extremely-poor"),
+    }
+}
+
+fn condition_label(c: weathervane::WeatherCondition) -> String {
+    use weathervane::WeatherCondition as C;
+    match c {
+        C::ClearSky => fl!("condition-clear-sky"),
+        C::MainlyClear => fl!("condition-mainly-clear"),
+        C::PartlyCloudy => fl!("condition-partly-cloudy"),
+        C::Overcast => fl!("condition-overcast"),
+        C::Foggy => fl!("condition-fog"),
+        C::Drizzle => fl!("condition-drizzle"),
+        C::FreezingDrizzle => fl!("condition-freezing-drizzle"),
+        C::Rain => fl!("condition-rain"),
+        C::FreezingRain => fl!("condition-freezing-rain"),
+        C::Snow => fl!("condition-snow"),
+        C::SnowGrains => fl!("condition-snow-grains"),
+        C::RainShowers => fl!("condition-rain-showers"),
+        C::SnowShowers => fl!("condition-snow-showers"),
+        C::Thunderstorm => fl!("condition-thunderstorm"),
+        C::ThunderstormHail => fl!("condition-thunderstorm-hail"),
+        C::Unknown => fl!("condition-unknown"),
     }
 }

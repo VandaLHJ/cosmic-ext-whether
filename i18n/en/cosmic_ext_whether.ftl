@@ -64,6 +64,24 @@ aqi-cat-poor = Poor
 aqi-cat-very-poor = Very Poor
 aqi-cat-extremely-poor = Extremely Poor
 
+## Reference - weather conditions
+condition-clear-sky = Clear sky
+condition-mainly-clear = Mainly clear
+condition-partly-cloudy = Partly cloudy
+condition-overcast = Overcast
+condition-fog = Fog
+condition-drizzle = Drizzle
+condition-freezing-drizzle = Freezing drizzle
+condition-rain = Rain
+condition-freezing-rain = Freezing rain
+condition-snow = Snow
+condition-snow-grains = Snow grains
+condition-rain-showers = Rain showers
+condition-snow-showers = Snow showers
+condition-thunderstorm = Thunderstorm
+condition-thunderstorm-hail = Thunderstorm with hail
+condition-unknown = Unknown
+
 ##About
 app-title = Whether
 about = About

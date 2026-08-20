@@ -128,6 +128,7 @@ fn build_daily_periods(
         // Day period (high)
         periods.push(ForecastPeriod {
             name: day_name.clone(),
+            condition: Some(d.condition),
             temperature: d.temp_max.round() as i32,
             temperature_unit: unit.to_string(),
             wind_speed: wind_speed.clone(),
@@ -147,6 +148,7 @@ fn build_daily_periods(
         };
         periods.push(ForecastPeriod {
             name: night_name,
+            condition: Some(d.condition),
             temperature: d.temp_min.round() as i32,
             temperature_unit: unit.to_string(),
             wind_speed,
@@ -173,6 +175,7 @@ fn build_hourly_periods(
             let description = condition_label(&h.condition).to_string();
             ForecastPeriod {
                 name: String::new(),
+                condition: Some(h.condition),
                 temperature: h.temperature.round() as i32,
                 temperature_unit: unit.to_string(),
                 wind_speed: format!("{:.0} {speed_unit}", h.windspeed),
@@ -204,7 +207,8 @@ fn build_observation(
     CurrentObservation {
         temperature: Some(cur.temperature.round() as i32),
         temperature_unit: unit.to_string(),
-        condition: Some(condition_label(&cur.condition).to_string()),
+        condition: Some(cur.condition),
+        condition_text: Some(condition_label(&cur.condition).to_string()),
         wind_speed: Some(format!("{:.0} {speed_unit}", cur.windspeed)),
         wind_direction: Some(cur.compass_direction.as_str().to_string()),
         humidity: Some(cur.humidity),
@@ -277,9 +281,7 @@ fn aqi_severity_index(c: &weathervane::AqiCategory) -> u8 {
     }
 }
 
-/// Human-readable label for a weathervane condition. Kept keyword-compatible
-/// with `types::condition_icon()` (contains "rain"/"snow"/"storm"/"fog"/"cloud"/
-/// "clear" etc.) so the existing icon mapping still resolves. Day/night is applied
+/// Human-readable label for a weathervane condition. Day/night is applied
 /// downstream via `is_daytime`, so there's no day/night text split here.
 fn condition_label(c: &weathervane::WeatherCondition) -> &'static str {
     use weathervane::WeatherCondition as C;

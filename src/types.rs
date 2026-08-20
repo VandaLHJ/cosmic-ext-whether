@@ -34,7 +34,8 @@ pub struct WeatherResult {
 pub struct CurrentObservation {
     pub temperature: Option<i32>,
     pub temperature_unit: String,
-    pub condition: Option<String>,
+    pub condition_text: Option<String>,
+    pub condition: Option<weathervane::WeatherCondition>,
     pub wind_speed: Option<String>,
     pub wind_direction: Option<String>,
     pub humidity: Option<i32>,
@@ -114,6 +115,8 @@ pub struct ForecastPeriod {
     pub probability_of_precipitation: Option<PrecipValue>,
     #[serde(default)]
     pub start_time: Option<String>,
+    #[serde(skip)]
+    pub condition: Option<weathervane::WeatherCondition>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -178,6 +181,7 @@ pub struct DaySummary {
     pub wind_speed: String,
     pub wind_direction: String,
     pub precip_chance: Option<i32>,
+    pub condition: Option<weathervane::WeatherCondition>,
     pub detailed_forecast: String,
 }
 
@@ -199,6 +203,7 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
             });
             summaries.push(DaySummary {
                 name: period.name.clone(),
+                condition: period.condition,
                 date: period
                     .start_time
                     .as_ref()
@@ -221,6 +226,7 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
             // Night-only period (e.g., first period is tonight)
             summaries.push(DaySummary {
                 name: period.name.clone(),
+                condition: period.condition,
                 date: period
                     .start_time
                     .as_ref()
@@ -280,8 +286,24 @@ pub struct NominatimAddress {
     pub country_code: Option<String>,
 }
 
-/// Map a weather condition string and day/night flag to a symbolic icon name.
-pub fn condition_icon(condition: &str, is_daytime: bool) -> &'static str {
+/// Return the condition.icon_name from weathervane, mapping to weather clear for unknown condition
+pub fn condition_icon_for(c: weathervane::WeatherCondition, is_daytime: bool) -> &'static str {
+    let night = !is_daytime;
+
+    match c {
+        weathervane::WeatherCondition::Unknown => {
+            if night {
+                "weather-clear-night-symbolic"
+            } else {
+                "weather-clear-symbolic"
+            }
+        }
+        _ => c.icon_name(night),
+    }
+}
+
+/// US-daily fallback to map a weather condition string and day/night flag to a symbolic icon name.
+pub fn condition_icon_from_text(condition: &str, is_daytime: bool) -> &'static str {
     let s = condition.to_lowercase();
     let night = !is_daytime;
 

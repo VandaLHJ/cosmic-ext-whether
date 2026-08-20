@@ -2,13 +2,17 @@ use crate::app::{AppModel, Message};
 use crate::config::APP_ID;
 use crate::fl;
 use crate::types::{
-    condition_icon, format_hour, pair_daily_periods, FetchState, Forecast, ForecastPeriod,
+    condition_icon_for, condition_icon_from_text, format_hour, pair_daily_periods, FetchState,
+    Forecast, ForecastPeriod,
 };
 use cosmic::iced::{Alignment, Color, Length};
 use cosmic::{widget, Element};
 
 fn weather_icon_for_period(period: &ForecastPeriod) -> &'static str {
-    condition_icon(&period.short_forecast, period.is_daytime)
+    match period.condition {
+        Some(c) => condition_icon_for(c, period.is_daytime),
+        None => condition_icon_from_text(&period.short_forecast, period.is_daytime),
+    }
 }
 
 pub(crate) fn weather_icon_handle(name: &str) -> cosmic::widget::icon::Handle {
@@ -27,7 +31,7 @@ pub(crate) fn weather_icon_handle(name: &str) -> cosmic::widget::icon::Handle {
         "weather-few-clouds-night-symbolic" => bundled!("weather-few-clouds-night-symbolic"),
         "weather-overcast-symbolic" => bundled!("weather-overcast-symbolic"),
         "weather-showers-symbolic" => bundled!("weather-showers-symbolic"),
-        "weathers-showers-scattered-symbolic" => bundled!("weather-showers-scattered-symbolic"),
+        "weather-showers-scattered-symbolic" => bundled!("weather-showers-scattered-symbolic"),
         "weather-snow-symbolic" => bundled!("weather-snow-symbolic"),
         "weather-storm-symbolic" => bundled!("weather-storm-symbolic"),
         "weather-fog-symbolic" => bundled!("weather-fog-symbolic"),
@@ -59,8 +63,8 @@ impl AppModel {
         }
         // Prefer observation condition for panel icon
         if let Some(obs) = &self.observation {
-            if let Some(ref cond) = obs.condition {
-                return condition_icon(cond, obs.is_daytime);
+            if let Some(cond) = obs.condition {
+                return condition_icon_for(cond, obs.is_daytime);
             }
         }
         self.forecast
@@ -343,13 +347,12 @@ impl AppModel {
                 let temp = obs.temperature.unwrap_or(current.temperature);
                 let unit = &obs.temperature_unit;
                 let cond = obs
-                    .condition
+                    .condition_text
                     .clone()
                     .unwrap_or_else(|| current.short_forecast.clone());
                 let icon = obs
                     .condition
-                    .as_deref()
-                    .map(|c| condition_icon(c, obs.is_daytime))
+                    .map(|c| condition_icon_for(c, obs.is_daytime))
                     .unwrap_or_else(|| weather_icon_for_period(current));
                 let wind = match (&obs.wind_speed, &obs.wind_direction) {
                     (Some(speed), Some(dir)) => Some(format!("{speed} {dir}")),
@@ -893,7 +896,10 @@ impl AppModel {
 }
 
 fn forecast_icon_for_summary(day: &crate::types::DaySummary) -> &'static str {
-    condition_icon(&day.short_forecast, day.is_daytime)
+    match day.condition {
+        Some(c) => condition_icon_for(c, day.is_daytime),
+        None => condition_icon_from_text(&day.short_forecast, day.is_daytime),
+    }
 }
 
 // AQI loud tier (bands 3-5) - (background, text). The quiet tier (0-2) blends into

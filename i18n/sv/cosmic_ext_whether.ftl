@@ -66,6 +66,61 @@ aqi-cat-poor = Dåligt
 aqi-cat-very-poor = Väldigt dåligt
 aqi-cat-extremely-poor = Extremt dåligt
 
+## TODO - weather conditions - now hold English stubs
+## Reference - weather conditions
+condition-clear-sky = Clear sky
+condition-mainly-clear = Mainly clear
+condition-partly-cloudy = Partly cloudy
+condition-overcast = Overcast
+condition-fog = Fog
+condition-drizzle = Drizzle
+condition-freezing-drizzle = Freezing drizzle
+condition-rain = Rain
+condition-freezing-rain = Freezing rain
+condition-snow = Snow
+condition-snow-grains = Snow grains
+condition-rain-showers = Rain showers
+condition-snow-showers = Snow showers
+condition-thunderstorm = Thunderstorm
+condition-thunderstorm-hail = Thunderstorm with hail
+condition-unknown = Unknown
+
+## TODO - compass directions - now hold English stubs
+## Reference - compass directions
+## ABBREVIATIONS, not words. Use your locale's conventional short form
+## (Swedish NE = "NO", not "Nordost")
+## These render inline in the wind line of a 360px popup so should be short
+compass-n = N
+compass-ne = NE
+compass-e = E
+compass-se = SE
+compass-s = S
+compass-sw = SW
+compass-w = W
+compass-nw = NW
+
+## TODO - weekdays, relative day labels and clock format - now hold English stubs
+## Reference - weekdays
+weekday-monday = Monday
+weekday-tuesday = Tuesday
+weekday-wednesday = Wednesday
+weekday-thursday = Thursday
+weekday-friday = Friday
+weekday-saturday = Saturday
+weekday-sunday = Sunday
+
+## Reference - relative day labels
+day-today = Today
+day-this-afternoon = This Afternoon
+day-tonight = Tonight
+day-overnight = Overnight
+
+# Hourly strip; "Now" heads the current hour's column
+hourly-now = Now
+# 12-hour clock markers. Keep short — these render in a six-column strip.
+time-am = AM
+time-pm = PM
+
 ## Om sida 
 ##Om
 app-title = Whether

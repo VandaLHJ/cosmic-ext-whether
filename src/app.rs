@@ -11,7 +11,7 @@ use cosmic::Element;
 static AUTOSIZE_MAIN_ID: LazyLock<widget::Id> = LazyLock::new(|| widget::Id::new("autosize-main"));
 
 use crate::backend;
-use crate::config::{self, WhetherConfig, APP_ID};
+use crate::config::{self, detect_military_time, WhetherConfig, APP_ID};
 use crate::geocoding;
 use crate::types::{
     short_location_name, AirQuality, CurrentObservation, FetchState, Forecast, SavedLocation,
@@ -49,6 +49,7 @@ pub struct AppModel {
     pub(crate) location_names: Vec<String>,
     pub(crate) alerts: Vec<WeatherAlert>,
     pub(crate) fetch_generation: u64,
+    pub(crate) military_time: bool,
 }
 
 /// Number of hourly columns visible at once between the arrow buttons.
@@ -78,6 +79,7 @@ impl Default for AppModel {
             location_names: Vec::new(),
             alerts: Vec::new(),
             fetch_generation: 0,
+            military_time: false,
         }
     }
 }
@@ -134,6 +136,7 @@ impl cosmic::Application for AppModel {
         };
 
         let location_names = config.locations.iter().map(|l| l.name.clone()).collect();
+        let military_time = detect_military_time();
 
         let mut app = Self {
             core,
@@ -141,6 +144,7 @@ impl cosmic::Application for AppModel {
             config_handle,
             page,
             location_names,
+            military_time,
             ..Default::default()
         };
 
@@ -198,6 +202,7 @@ impl cosmic::Application for AppModel {
                         |_| Default::default(),
                         move |state: &mut AppModel| {
                             let new_id = Id::unique();
+                            state.military_time = detect_military_time();
                             state.popup = Some(new_id);
                             let mut popup_settings = state.core.applet.get_popup_settings(
                                 state.core.main_window_id().unwrap(),

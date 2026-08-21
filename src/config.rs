@@ -1,5 +1,7 @@
 use cosmic::cosmic_config;
-use cosmic::cosmic_config::{cosmic_config_derive::CosmicConfigEntry, Config, CosmicConfigEntry};
+use cosmic::cosmic_config::{
+    cosmic_config_derive::CosmicConfigEntry, Config, ConfigGet, CosmicConfigEntry,
+};
 
 use crate::types::SavedLocation;
 
@@ -118,5 +120,48 @@ pub fn load_config() -> (WhetherConfig, Option<Config>) {
 pub fn save_config(config_handle: &Option<Config>, cfg: &WhetherConfig) {
     if let Some(handle) = config_handle {
         let _ = cfg.write_entry(handle);
+    }
+}
+
+pub fn detect_military_time() -> bool {
+    if let Ok(cfg) = cosmic_config::Config::new("com.system76.CosmicAppletTime", 1) {
+        if let Ok(v) = cfg.get::<bool>("military_time") {
+            return v;
+        }
+    }
+    detect_military_time_from_locale()
+}
+
+/// Detect whether to default to military time based on the user's locale.
+///
+/// Checks `LC_TIME` then `LANG` for a country code.
+/// US, Canada (CA), Australia (AU), New Zealand (NZ), Philippines (PH), India (IN),
+/// Pakistan (PK), Bangladesh (BD), Malaysia (MY), Egypt (EG), Suadi Arabia (SA), Jordan (JO),
+/// Mexico (MX), Colombia (CO) use 12 hr clock; everyone else uses 24 hr clock.
+/// Falls back to `false` (12 hr clock) if no locale can be determined.
+fn detect_military_time_from_locale() -> bool {
+    let locale_str = std::env::var("LC_TIME")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .or_else(|| std::env::var("LANG").ok().filter(|s| !s.is_empty()));
+
+    let Some(locale) = locale_str else {
+        return false;
+    };
+
+    // Extract country code from e.g. "en_US.UTF-8" or "en_US"
+    // Find the '_' separator, then take the next 2 chars as country code
+    let country = locale
+        .find('_')
+        .and_then(|pos| locale.get(pos + 1..pos + 3))
+        .map(|c| c.to_uppercase());
+
+    match country.as_deref() {
+        Some(
+            "US" | "CA" | "AU" | "NZ" | "PH" | "IN" | "PK" | "BD" | "MY" | "EG" | "SA" | "JO"
+            | "MX" | "CO",
+        ) => false,
+        Some(_) => true,
+        None => false, // Can't parse → preserve existing default
     }
 }

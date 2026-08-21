@@ -110,6 +110,10 @@ day-this-afternoon = This Afternoon
 day-tonight = Tonight
 day-overnight = Overnight
 
+# 12-hour clock markers. Keep short — these render in a six-column strip.
+time-am = AM
+time-pm = PM
+
 ##About
 app-title = Whether
 about = About

@@ -2,8 +2,8 @@ use crate::app::{AppModel, Message};
 use crate::config::APP_ID;
 use crate::fl;
 use crate::types::{
-    condition_icon_for, condition_icon_from_text, format_hour, pair_daily_periods, FetchState,
-    Forecast, ForecastPeriod,
+    condition_icon_for, condition_icon_from_text, pair_daily_periods, FetchState, Forecast,
+    ForecastPeriod,
 };
 use cosmic::iced::{Alignment, Color, Length};
 use cosmic::{widget, Element};
@@ -653,7 +653,7 @@ impl AppModel {
                     period
                         .start_time
                         .as_deref()
-                        .map(format_hour)
+                        .map(|s| format_hour(s, self.military_time))
                         .unwrap_or_default()
                 };
 
@@ -1143,4 +1143,24 @@ fn condition_label(c: weathervane::WeatherCondition) -> String {
         C::ThunderstormHail => fl!("condition-thunderstorm-hail"),
         C::Unknown => fl!("condition-unknown"),
     }
+}
+/// Display hour for an hourly column head, e.g. "3 PM" or "15:00"
+///
+/// Input format: "2026-02-28T14:00:00-08:00" Minutes are always :00 by
+/// construction, so 24h emits `{hour:02}:00` rather than a full clock time.
+fn format_hour(start_time: &str, military_time: bool) -> String {
+    let Some(hour) = crate::types::iso_hour(start_time) else {
+        return start_time.to_string();
+    };
+
+    if military_time {
+        return format!("{hour:02}:00");
+    }
+    let (display, marker) = match hour {
+        0 => (12, fl!("time-am")),
+        1..=11 => (hour, fl!("time-am")),
+        12 => (12, fl!("time-pm")),
+        _ => (hour - 12, fl!("time-pm")),
+    };
+    format!("{display} {marker}")
 }

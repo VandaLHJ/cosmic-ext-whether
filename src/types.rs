@@ -255,30 +255,12 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
     summaries
 }
 
-/// Extract a display hour like "3 PM" from an ISO 8601 string.
-///
-/// Input format: "2026-02-28T14:00:00-08:00"
-/// The 'T' separator is at index 10, hour digits are at 11..13.
-pub fn format_hour(start_time: &str) -> String {
-    if let Some(t_pos) = start_time.find('T') {
-        if let Ok(hour) = start_time[t_pos + 1..t_pos + 3].parse::<u32>() {
-            return match hour {
-                0 => "12 AM".to_string(),
-                1..=11 => format!("{hour} AM"),
-                12 => "12 PM".to_string(),
-                _ => format!("{} PM", hour - 12),
-            };
-        }
-    }
-    start_time.to_string()
-}
-
 /// Hour-of-day from an ISO 8601 string, read positionally.
 ///
 /// Deliberately avoids chrono: the synthesized strings carry no offset, and
 /// `with_timezone(&Local)` would convert to the reader's clock rather than
 /// the forecast point's.
-fn iso_hour(s: &str) -> Option<u32> {
+pub(crate) fn iso_hour(s: &str) -> Option<u32> {
     let t = s.find('T')?;
     s.get(t + 1..t + 3)?.parse().ok()
 }

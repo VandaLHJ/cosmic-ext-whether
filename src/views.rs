@@ -740,7 +740,7 @@ impl AppModel {
                         })))
                         .into();
 
-                let name_text = widget::text::body(day.name.clone()).width(Length::Fill);
+                let name_text = widget::text::body(day_label(day, i)).width(Length::Fill);
 
                 let temp_str = match (day.high, day.low) {
                     (Some(h), Some(l)) => {
@@ -1085,6 +1085,36 @@ fn compass_label(d: weathervane::CompassDirection) -> String {
         D::W => fl!("compass-w"),
         D::NW => fl!("compass-nw"),
     }
+}
+
+fn weekday_label(w: chrono::Weekday) -> String {
+    use chrono::Weekday as W;
+    match w {
+        W::Sun => fl!("weekday-sunday"),
+        W::Mon => fl!("weekday-monday"),
+        W::Tue => fl!("weekday-tuesday"),
+        W::Wed => fl!("weekday-wednesday"),
+        W::Thu => fl!("weekday-thursday"),
+        W::Fri => fl!("weekday-friday"),
+        W::Sat => fl!("weekday-saturday"),
+    }
+}
+
+/// Row label for a daily forecast row.
+///
+/// Rows 1+ resolve the weekday from the ISO date so the name is localized;
+/// row 0 keeps the backend's relative name until the four-band rule lands.
+/// Falls back to `DaySummary.name` (English) if the date is missing or unparseable.
+fn day_label(day: &crate::types::DaySummary, index: usize) -> String {
+    if index == 0 {
+        return day.name.clone();
+    }
+
+    day.date
+        .as_deref()
+        .and_then(weathervane::ParsedDate::from_iso)
+        .map(|d| weekday_label(d.weekday))
+        .unwrap_or_else(|| day.name.clone())
 }
 
 fn condition_label(c: weathervane::WeatherCondition) -> String {

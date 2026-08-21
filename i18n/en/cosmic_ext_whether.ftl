@@ -95,6 +95,15 @@ compass-sw = SW
 compass-w = W
 compass-nw = NW
 
+## Reference - weekdays
+weekday-monday = Monday
+weekday-tuesday = Tuesday
+weekday-wednesday = Wednesday
+weekday-thursday = Thursday
+weekday-friday = Friday
+weekday-saturday = Saturday
+weekday-sunday = Sunday
+
 ##About
 app-title = Whether
 about = About

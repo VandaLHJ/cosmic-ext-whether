@@ -3,10 +3,10 @@ default-heading = Pogoda
 loading = Ładowanie danych pogodowych...
 fetch-error = Nie udało się pobrać pogody: {$error}
 stale-data = Pokazuje wcześniej pobrane dane (aktualizacja nieudana)
-no-location = Brak ustawionej lokalizacji
+no-location = Brak ustawionego położenia
 
 ## Setup & search
-setup-title = Ustaw swoją lokalizację
+setup-title = Ustal swoje położenie
 search-placeholder = Wyszukaj miasto...
 search-button = Szukaj
 searching = Szukanie...
@@ -14,8 +14,8 @@ no-results = Nie znaleziono wyników
 search-error = Wyszukiwanie nieudane: {$error}
 
 ## Manage locations
-manage-locations = Zarządzaj lokalizacjami
-no-saved-locations = Brak zapisanych lokalizacji
+manage-locations = Zarządzaj Położeniami
+no-saved-locations = Brak zapisanych położeń
 
 ## Current card - hero
 label-wind = Wiatr
@@ -39,10 +39,10 @@ label-sunrise = Wschód słońca
 label-sunset = Zachód słońca
 
 ## Alerts
-alerts-heading = Aktywne alerty
+alerts-heading = Aktywne ostrzeżenia
 
 ## Footer
-updated-ago = Zaktualizowano {$minutes} min. temu
+updated-ago = Zaktualizowano {$minutes} minut temu
 updated-now = Zaktualizowano przed chwilą
 
 ## Reference - UV levels

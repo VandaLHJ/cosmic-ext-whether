@@ -118,15 +118,14 @@ fn build_daily_periods(
     speed_unit: &str,
 ) -> Vec<ForecastPeriod> {
     let mut periods = Vec::with_capacity(daily.len() * 2);
-    for (i, d) in daily.iter().enumerate() {
-        let day_name = date_to_day_name(&d.date, i == 0);
+    for d in daily {
         let wind_dir = d.compass_direction.as_str().to_string();
         let wind_speed = format!("{:.0} {speed_unit}", d.windspeed_max);
         let precip = d.precipitation_probability_max.map(|v| v as f64);
 
         // Day period (high)
         periods.push(ForecastPeriod {
-            name: day_name.clone(),
+            name: String::new(),
             condition: Some(d.condition),
             temperature: d.temp_max.round() as i32,
             temperature_unit: unit.to_string(),
@@ -140,14 +139,8 @@ fn build_daily_periods(
             start_time: Some(format!("{}T06:00:00", d.date)),
         });
 
-        // Night period (low)
-        let night_name = if i == 0 {
-            "Tonight".to_string()
-        } else {
-            format!("{day_name} Night")
-        };
         periods.push(ForecastPeriod {
-            name: night_name,
+            name: String::new(),
             condition: Some(d.condition),
             temperature: d.temp_min.round() as i32,
             temperature_unit: unit.to_string(),
@@ -232,17 +225,6 @@ fn hour_is_daytime(time: &str, daily: &[weathervane::DailyForecast]) -> bool {
         .find(|d| d.date == date)
         .map(|d| time >= d.sunrise.as_str() && time < d.sunset.as_str())
         .unwrap_or(true)
-}
-
-/// ISO date ("2026-03-01") to day name ("Sunday"); "Today" for the first day.
-fn date_to_day_name(date_str: &str, is_first: bool) -> String {
-    if is_first {
-        return "Today".to_string();
-    }
-    if let Ok(date) = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
-        return date.format("%A").to_string();
-    }
-    date_str.to_string()
 }
 
 fn map_severity(s: weathervane::AlertSeverity) -> AlertSeverity {

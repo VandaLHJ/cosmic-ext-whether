@@ -1103,8 +1103,8 @@ fn weekday_label(w: chrono::Weekday) -> String {
 /// Row label for a daily forecast row.
 ///
 /// Rows 1+ resolve the weekday from the ISO date so the name is localized;
-/// row 0 keeps the backend's relative name until the four-band rule lands.
-/// Falls back to `DaySummary.name` (English) if the date is missing or unparseable.
+/// Row 0 uses the the four-band rule over `is_daytime` and the period's start hour.
+/// Falls back to the raw ISO date string if it is missing or unparseable.
 fn day_label(day: &crate::types::DaySummary, index: usize) -> String {
     if index == 0 {
         let hour = day.hour.unwrap_or(if day.is_daytime { 6 } else { 18 });
@@ -1120,7 +1120,7 @@ fn day_label(day: &crate::types::DaySummary, index: usize) -> String {
         .as_deref()
         .and_then(weathervane::ParsedDate::from_iso)
         .map(|d| weekday_label(d.weekday))
-        .unwrap_or_else(|| day.name.clone())
+        .unwrap_or_else(|| day.date.clone().unwrap_or_default())
 }
 
 fn condition_label(c: weathervane::WeatherCondition) -> String {

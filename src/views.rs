@@ -648,7 +648,7 @@ impl AppModel {
             for i in offset..end {
                 let period = &forecast.hourly_periods[i];
                 let hour_label = if i == 0 {
-                    "Now".to_string()
+                    fl!("hourly-now")
                 } else {
                     period
                         .start_time
@@ -810,8 +810,8 @@ impl AppModel {
                         .as_ref()
                         .and_then(|d| forecast.sun_times.iter().find(|s| &s.date == d))
                     {
-                        let sunrise = weathervane::format_time(&sun.sunrise, false); // 12h "6:42 AM"
-                        let sunset = weathervane::format_time(&sun.sunset, false);
+                        let sunrise = weathervane::format_time(&sun.sunrise, self.military_time);
+                        let sunset = weathervane::format_time(&sun.sunset, self.military_time);
                         detail_col = detail_col.push(stat_line(
                             muted,
                             vec![

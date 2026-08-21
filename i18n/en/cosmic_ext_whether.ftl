@@ -110,6 +110,8 @@ day-this-afternoon = This Afternoon
 day-tonight = Tonight
 day-overnight = Overnight
 
+# Hourly strip; "Now" heads the current hour's column
+hourly-now = Now
 # 12-hour clock markers. Keep short — these render in a six-column strip.
 time-am = AM
 time-pm = PM

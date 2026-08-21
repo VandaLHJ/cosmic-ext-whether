@@ -1107,7 +1107,13 @@ fn weekday_label(w: chrono::Weekday) -> String {
 /// Falls back to `DaySummary.name` (English) if the date is missing or unparseable.
 fn day_label(day: &crate::types::DaySummary, index: usize) -> String {
     if index == 0 {
-        return day.name.clone();
+        let hour = day.hour.unwrap_or(if day.is_daytime { 6 } else { 18 });
+        return match (day.is_daytime, hour) {
+            (true, h) if h < 12 => fl!("day-today"),
+            (true, _) => fl!("day-this-afternoon"),
+            (false, h) if h >= 6 => fl!("day-tonight"),
+            (false, _) => fl!("day-overnight"),
+        };
     }
 
     day.date

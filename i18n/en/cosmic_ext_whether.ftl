@@ -104,6 +104,12 @@ weekday-friday = Friday
 weekday-saturday = Saturday
 weekday-sunday = Sunday
 
+## Reference - relative day labels
+day-today = Today
+day-this-afternoon = This Afternoon
+day-tonight = Tonight
+day-overnight = Overnight
+
 ##About
 app-title = Whether
 about = About

@@ -137,7 +137,7 @@ fn build_daily_periods(
             detailed_forecast: String::new(),
             is_daytime: true,
             probability_of_precipitation: Some(PrecipValue { value: precip }),
-            start_time: Some(format!("{}T12:00:00", d.date)),
+            start_time: Some(format!("{}T06:00:00", d.date)),
         });
 
         // Night period (low)
@@ -158,7 +158,7 @@ fn build_daily_periods(
             detailed_forecast: String::new(),
             is_daytime: false,
             probability_of_precipitation: Some(PrecipValue { value: precip }),
-            start_time: Some(format!("{}T00:00:00", d.date)),
+            start_time: Some(format!("{}T18:00:00", d.date)),
         });
     }
     periods

@@ -175,6 +175,7 @@ pub enum FetchState {
 pub struct DaySummary {
     pub name: String,
     pub date: Option<String>,
+    pub hour: Option<u32>,
     pub high: Option<i32>,
     pub low: Option<i32>,
     pub short_forecast: String,
@@ -206,6 +207,7 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
             summaries.push(DaySummary {
                 name: period.name.clone(),
                 condition: period.condition,
+                hour: period.start_time.as_deref().and_then(iso_hour),
                 date: period
                     .start_time
                     .as_ref()
@@ -230,6 +232,7 @@ pub fn pair_daily_periods(periods: &[ForecastPeriod]) -> Vec<DaySummary> {
             summaries.push(DaySummary {
                 name: period.name.clone(),
                 condition: period.condition,
+                hour: period.start_time.as_deref().and_then(iso_hour),
                 date: period
                     .start_time
                     .as_ref()
@@ -271,6 +274,16 @@ pub fn format_hour(start_time: &str) -> String {
         }
     }
     start_time.to_string()
+}
+
+/// Hour-of-day from an ISO 8601 string, read positionally.
+///
+/// Deliberately avoids chrono: the synthesized strings carry no offset, and
+/// `with_timezone(&Local)` would convert to the reader's clock rather than
+/// the forecast point's.
+fn iso_hour(s: &str) -> Option<u32> {
+    let t = s.find('T')?;
+    s.get(t + 1..t + 3)?.parse().ok()
 }
 
 // --- Geocoding types ---

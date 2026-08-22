@@ -87,7 +87,7 @@ condition-rain-showers = Przelotny deszcz
 condition-snow-showers = Przelotny śnieg
 condition-thunderstorm = Burza
 condition-thunderstorm-hail = Burza z gradem
-condition-unknown = Unknown
+condition-unknown = Nieznane
 
 ## Reference - compass directions
 ## ABBREVIATIONS, not words. Use your locale's conventional short form
@@ -119,7 +119,7 @@ day-overnight = W nocy
 
 # Hourly strip; "Now" heads the current hour's column
 hourly-now = Teraz
-# 12-hour clock markers. Keep short — these render in a six-column strip. I don't think they have translation for this language, so I left them as-is.
+# 12-hour clock markers. Keep short — these render in a six-column strip.
 time-am = AM
 time-pm = PM
 

@@ -43,7 +43,7 @@ alerts-heading = Aktywne ostrzeżenia
 
 ## Footer
 updated-ago = Zaktualizowano {$minutes} { $minutes ->
-        [one] minuta
+        [one] minutę
         [few] minuty
        *[other] minut
     } temu

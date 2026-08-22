@@ -42,10 +42,13 @@ label-sunset = Pôr do sol
 alerts-heading = Alertas ativos
 
 ## Footer
+# `$minutes` is a number, so a plural selector works here if your language needs one.
+# Categories are per-language: English has only one/other, Polish adds few/many.
+# If a plural selector is used, one variant must be the default, marked `*` - normally *[other].
 updated-ago = Atualizado há {$minutes} min
 updated-now = Atualizado agora
 
-## Reverence - UV levels
+## Reference - UV levels
 uv-level-low = Baixo
 uv-level-moderate = Moderado
 uv-level-high = Alto
@@ -64,15 +67,7 @@ aqi-cat-poor = Ruim
 aqi-cat-very-poor = Muito ruim
 aqi-cat-extremely-poor = Extremamente ruim
 
-##About
-app-title = Whether
-about = Sobre
-about-summary = Dados do Open-Meteo, NWS e JMA
-about-summary-2 = via weathervane
-about-homepage = Página inicial
-about-issues = Relatar um problema
-
-## Weather conditions
+## Reference - weather conditions
 condition-clear-sky = Céu limpo
 condition-mainly-clear = Predominantemente limpo
 condition-partly-cloudy = Parcialmente nublado
@@ -90,22 +85,46 @@ condition-thunderstorm = Tempestade
 condition-thunderstorm-hail = Tempestade com granizo
 condition-unknown = Desconhecido
 
-## Day names
+## TODO - compass directions - now hold English stubs
+## Reference - compass directions
+## ABBREVIATIONS, not words. Use your locale's conventional short form
+## (Swedish NE = "NO", not "Nordost")
+## These render inline in the wind line of a 360px popup so should be short
+compass-n = N
+compass-ne = NE
+compass-e = E
+compass-se = SE
+compass-s = S
+compass-sw = SW
+compass-w = W
+compass-nw = NW
+
+## Reference - weekdays
+weekday-monday = Segunda-feira
+weekday-tuesday = Terça-feira
+weekday-wednesday = Quarta-feira
+weekday-thursday = Quinta-feira
+weekday-friday = Sexta-feira
+weekday-saturday = Sábado
+weekday-sunday = Domingo
+
+## TODO - the two unlabelled day bands and the AM/PM markers hold English stubs
+## Reference - relative day labels
 day-today = Hoje
-day-monday = Segunda-feira
-day-tuesday = Terça-feira
-day-wednesday = Quarta-feira
-day-thursday = Quinta-feira
-day-friday = Sexta-feira
-day-saturday = Sábado
-day-sunday = Domingo
+day-this-afternoon = This Afternoon
+day-tonight = Hoje à noite
+day-overnight = Overnight
 
-## Night periods
-night-tonight = Hoje à noite
-night-day = {$day} à noite
+# Hourly strip; "Now" heads the current hour's column
+hourly-now = Agora
+# 12-hour clock markers. Keep short — these render in a six-column strip.
+time-am = AM
+time-pm = PM
 
-## Hourly
-hour-now = Agora
-
-## Clock format ("true" = 24-hour clock, otherwise 12-hour AM/PM)
-clock-24h = true
+##About
+app-title = Whether
+about = Sobre
+about-summary = Dados do Open-Meteo, NWS e JMA
+about-summary-2 = via weathervane
+about-homepage = Página inicial
+about-issues = Relatar um problema

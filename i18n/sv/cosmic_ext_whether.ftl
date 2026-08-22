@@ -42,6 +42,9 @@ label-sunset = Solnedgång
 alerts-heading = Aktiva varningar
 
 ##Footer
+# `$minutes` is a number, so a plural selector works here if your language needs one.
+# Categories are per-language: English has only one/other, Polish adds few/many.
+# If a plural selector is used, one variant must be the default, marked `*` - normally *[other].
 updated-ago = Uppdaterad {$minutes} min sedan
 updated-now = Uppdaterad just nu
 

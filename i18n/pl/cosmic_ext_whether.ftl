@@ -42,7 +42,11 @@ label-sunset = Zachód słońca
 alerts-heading = Aktywne ostrzeżenia
 
 ## Footer
-updated-ago = Zaktualizowano {$minutes} minut temu
+updated-ago = Zaktualizowano {$minutes} { $minutes ->
+        [one] minuta
+        [few] minuty
+       *[other] minut
+    } temu
 updated-now = Zaktualizowano przed chwilą
 
 ## Reference - UV levels

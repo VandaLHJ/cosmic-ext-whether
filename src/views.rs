@@ -839,8 +839,7 @@ impl AppModel {
             if elapsed == 0 {
                 fl!("updated-now")
             } else {
-                let mins = elapsed.to_string();
-                fl!("updated-ago", minutes = mins.as_str())
+                fl!("updated-ago", minutes = elapsed)
             }
         });
         let about_link = widget::button::custom(widget::text::caption(format!(

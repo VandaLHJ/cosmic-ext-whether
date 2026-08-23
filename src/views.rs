@@ -664,7 +664,9 @@ impl AppModel {
                 .on_press(Message::HourlyPrev)
                 .into()
             } else {
-                widget::Space::new().width(Length::Fixed(24.0)).into()
+                widget::Space::new()
+                    .width(Length::Fixed(16.0 + 2.0 * f32::from(sp.space_xxs)))
+                    .into()
             };
 
             let mut hourly_row = cosmic::iced::widget::row![].spacing(0);
@@ -725,7 +727,9 @@ impl AppModel {
                 .on_press(Message::HourlyNext)
                 .into()
             } else {
-                widget::Space::new().width(Length::Fixed(24.0)).into()
+                widget::Space::new()
+                    .width(Length::Fixed(16.0 + 2.0 * f32::from(sp.space_xxs)))
+                    .into()
             };
 
             let paged_row = cosmic::iced::widget::row![prev_arrow, hourly_row, next_arrow]

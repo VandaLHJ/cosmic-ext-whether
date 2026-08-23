@@ -24,6 +24,25 @@ A weather applet for the [COSMIC](https://github.com/pop-os/cosmic-epoch) deskto
 - **Imperial/Metric toggle** - click the hero temperature to switch between imperial (°F, mph, inHg) and metric (°C, km/h, hPa)
 - **Panel display** - day/night-aware weather icon and current temperature
 
+## Translations
+
+Whether is available in English and, thanks to its translators, in:
+- **Swedish** - [@bittin](https://github.com/bittin)
+- **Polish** - [@skajmer](https://github.com/skajmer), [@VandaLHJ](https://github.com/VandaLHJ)
+- **Portuguese (Brazil)** - [@wag-panfilli](https://github.com/wag-panfilli)
+
+To add a language, copy `i18n/en/cosmic_ext_whether.ftl` into a new locale directory under `i18n/` and open a pull request.
+
+Some of what you see comes from the weather service rather than from Whether, and appears in whatever
+language that agency publishes:
+
+- **Weather alert headlines** are written by the issuing agency (NWS, MeteoAlarm, ECCC, BOM) and keep its wording.
+- **US daily forecast detail** ("Sunny, with a high near 82. North northwest wind 2 to 9 mph.") is authored by the
+  National Weather Service and is English only.
+- **Condition descriptions** fall back to the provider's own wording when a report doesn't map to a known condition.
+
+Everything Whether renders itself - conditions, wind directions, weekdays, times, and all interface text - is translated.
+
 ## Installation
 
 Download the latest release from the [Releases](https://github.com/nwxnw/cosmic-ext-whether/releases) page.

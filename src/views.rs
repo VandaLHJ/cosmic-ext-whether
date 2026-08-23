@@ -223,12 +223,27 @@ impl AppModel {
     }
 
     pub(crate) fn view_main(&self) -> Element<'_, Message> {
+        // Pinned outside the scroll area so the location name, the locations
+        // chevron and refresh stay reachable at any scroll offset.
+        let header = widget::container(self.view_header())
+            .width(Length::Fixed(360.0))
+            .padding([16, 16, 0, 16]);
+
+        let body = widget::scrollable(self.view_main_body())
+            .class(cosmic::theme::iced::Scrollable::Minimal);
+
+        cosmic::iced::widget::column![header, body]
+            .width(Length::Fixed(360.0))
+            .into()
+    }
+
+    fn view_main_body(&self) -> Element<'_, Message> {
+        // 12 top recreates the gap the column's `.spacing(12)` used to give the header
         let mut col = cosmic::iced::widget::column![]
             .spacing(12)
-            .padding(16)
+            .padding([12, 16, 16, 16])
             .width(Length::Fixed(360.0));
 
-        col = col.push(self.view_header());
         if let Some(banner) = self.view_alert_banner() {
             col = col.push(banner);
         }

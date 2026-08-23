@@ -161,6 +161,7 @@ impl cosmic::Application for AppModel {
         let have_popup = self.popup;
         let icon_name = self.weather_icon_name();
         let suggested_size = self.core.applet.suggested_size(true);
+        let sp = cosmic::theme::spacing();
 
         let icon: Element<'_, Message> = cosmic::widget::icon(weather_icon_handle(icon_name))
             .size(suggested_size.0)
@@ -175,7 +176,7 @@ impl cosmic::Application for AppModel {
             let temp_widget = widget::text::body(temp).width(Length::Shrink);
             if self.core.applet.is_horizontal() {
                 cosmic::iced::widget::row![icon, temp_widget]
-                    .spacing(4)
+                    .spacing(sp.space_xxxs)
                     .align_y(Alignment::Center)
                     .into()
             } else {

@@ -75,6 +75,7 @@ impl AppModel {
     }
 
     pub(crate) fn view_setup(&self) -> Element<'_, Message> {
+        let sp = cosmic::theme::spacing();
         let title = fl!("setup-title");
         let placeholder = fl!("search-placeholder");
 
@@ -92,12 +93,12 @@ impl AppModel {
         );
 
         let search_row = cosmic::iced::widget::row![search, search_btn]
-            .spacing(8)
+            .spacing(sp.space_xxs)
             .align_y(Alignment::Center);
 
         let mut col = cosmic::iced::widget::column![widget::text::title4(title), search_row,]
-            .spacing(12)
-            .padding(16)
+            .spacing(sp.space_xs)
+            .padding(sp.space_s)
             .width(Length::Fixed(360.0));
 
         if self.searching {
@@ -125,6 +126,7 @@ impl AppModel {
     }
 
     pub(crate) fn view_locations(&self) -> Element<'_, Message> {
+        let sp = cosmic::theme::spacing();
         let title = fl!("manage-locations");
         let back_btn =
             widget::button::icon(widget::icon::from_name("go-previous-symbolic").symbolic(true))
@@ -133,11 +135,11 @@ impl AppModel {
         let title_row =
             cosmic::iced::widget::row![back_btn, widget::text::title4(title).width(Length::Fill),]
                 .align_y(Alignment::Center)
-                .spacing(8);
+                .spacing(sp.space_xxs);
 
         let mut col = cosmic::iced::widget::column![title_row]
-            .spacing(12)
-            .padding(16)
+            .spacing(sp.space_xs)
+            .padding(sp.space_s)
             .width(Length::Fixed(360.0));
 
         // Saved locations list
@@ -167,7 +169,7 @@ impl AppModel {
                 .on_press(Message::RemoveLocation(i));
 
                 let row = cosmic::iced::widget::row![location_radio, delete_btn,]
-                    .spacing(8)
+                    .spacing(sp.space_xxs)
                     .align_y(Alignment::Center)
                     .padding([6, 4]);
 
@@ -194,7 +196,7 @@ impl AppModel {
         );
 
         let search_row = cosmic::iced::widget::row![search, search_btn]
-            .spacing(8)
+            .spacing(sp.space_xxs)
             .align_y(Alignment::Center);
         col = col.push(search_row);
 
@@ -225,9 +227,10 @@ impl AppModel {
     pub(crate) fn view_main(&self) -> Element<'_, Message> {
         // Pinned outside the scroll area so the location name, the locations
         // chevron and refresh stay reachable at any scroll offset.
+        let sp = cosmic::theme::spacing();
         let header = widget::container(self.view_header())
             .width(Length::Fixed(360.0))
-            .padding([16, 16, 0, 16]);
+            .padding([sp.space_s, sp.space_s, 0, sp.space_s]);
 
         let body = widget::scrollable(self.view_main_body())
             .class(cosmic::theme::iced::Scrollable::Minimal);
@@ -238,10 +241,10 @@ impl AppModel {
     }
 
     fn view_main_body(&self) -> Element<'_, Message> {
-        // 12 top recreates the gap the column's `.spacing(12)` used to give the header
+        let sp = cosmic::theme::spacing();
         let mut col = cosmic::iced::widget::column![]
-            .spacing(12)
-            .padding([12, 16, 16, 16])
+            .spacing(sp.space_xs)
+            .padding([sp.space_xs, sp.space_s, sp.space_s, sp.space_s])
             .width(Length::Fixed(360.0));
 
         if let Some(banner) = self.view_alert_banner() {
@@ -286,6 +289,7 @@ impl AppModel {
 
     fn view_header(&self) -> Element<'_, Message> {
         // --- Header: location name heading + chevron + refresh ---
+        let sp = cosmic::theme::spacing();
         let location_name = self
             .config
             .locations
@@ -304,12 +308,13 @@ impl AppModel {
 
         let header_row = cosmic::iced::widget::row![heading, chevron_btn, refresh_btn]
             .align_y(Alignment::Center)
-            .spacing(8);
+            .spacing(sp.space_xxs);
         header_row.into()
     }
 
     fn view_alert_banner(&self) -> Option<Element<'_, Message>> {
         // Alert banner
+        let sp = cosmic::theme::spacing();
         if !self.alerts.is_empty() {
             let alert_icon: Element<'_, Message> =
                 cosmic::widget::icon(weather_icon_handle("weather-severe-alert-symbolic"))
@@ -321,7 +326,7 @@ impl AppModel {
                     })))
                     .into();
 
-            let mut alert_col = cosmic::iced::widget::column![].spacing(4);
+            let mut alert_col = cosmic::iced::widget::column![].spacing(sp.space_xxxs);
             let heading_text = fl!("alerts-heading");
             alert_col = alert_col.push(widget::text::body(heading_text));
             for alert in &self.alerts {
@@ -329,9 +334,9 @@ impl AppModel {
             }
 
             let alert_row = cosmic::iced::widget::row![alert_icon, alert_col]
-                .spacing(8)
+                .spacing(sp.space_xxs)
                 .align_y(Alignment::Start)
-                .padding(12)
+                .padding(sp.space_xs)
                 .width(Length::Fill);
 
             let alert_banner = widget::layer_container(alert_row)
@@ -346,6 +351,7 @@ impl AppModel {
     fn view_current_card(&self, forecast: &Forecast) -> Option<Element<'_, Message>> {
         // Shared by the hero card
         let muted = muted_color();
+        let sp = cosmic::theme::spacing();
 
         // --- Hero section ---
         if let Some(current) = forecast.periods.first() {
@@ -415,7 +421,7 @@ impl AppModel {
                 .on_press(Message::ToggleUnits);
 
             let icon_temp_row = cosmic::iced::widget::row![icon, temp_btn]
-                .spacing(12)
+                .spacing(sp.space_xs)
                 .align_y(Alignment::Center);
 
             let hero_uv_index = self.observation.as_ref().and_then(|o| o.uv_index);
@@ -429,7 +435,7 @@ impl AppModel {
 
             let mut hero_content = cosmic::iced::widget::column![icon_temp_row]
                 .spacing(2)
-                .padding(12)
+                .padding(sp.space_xs)
                 .width(Length::Fill);
 
             // Condition · Feels like
@@ -503,7 +509,7 @@ impl AppModel {
                     }))
                     .into();
                 let mut health = cosmic::iced::widget::row![pill]
-                    .spacing(8)
+                    .spacing(sp.space_xxs)
                     .align_y(Alignment::Center);
                 if let Some((uvs, extreme)) = uv {
                     let mut uv_span = cosmic::iced::widget::span::<(), _>(uvs);
@@ -570,6 +576,7 @@ impl AppModel {
         // pollutants. Mirrors the daily accordion (ToggleDay). Body stays inside
         // the hero card — no nested Secondary layer — so it reads as one surface.
         // PM2.5 / PM10 stay literal (universal abbreviations); Ozone via label-ozone.
+        let sp = cosmic::theme::spacing();
         let (more_icon, more_word) = if self.current_expanded {
             ("pan-up-symbolic", fl!("label-less"))
         } else {
@@ -579,7 +586,7 @@ impl AppModel {
             widget::icon::from_name(more_icon).symbolic(true).size(16),
             widget::text::body(more_word),
         ]
-        .spacing(8)
+        .spacing(sp.space_xxs)
         .align_y(Alignment::Center)
         .padding(0);
         let more_btn = widget::button::custom(more_row)
@@ -637,6 +644,7 @@ impl AppModel {
     }
 
     fn view_hourly(&self, forecast: &Forecast) -> Option<Element<'_, Message>> {
+        let sp = cosmic::theme::spacing();
         // --- Hourly forecast (paged with arrow buttons) ---
         if !forecast.hourly_periods.is_empty() {
             let total = forecast.hourly_periods.len();
@@ -687,7 +695,7 @@ impl AppModel {
 
                 let mut hour_col =
                     cosmic::iced::widget::column![widget::text::caption(hour_label), icon, temp,]
-                        .spacing(4)
+                        .spacing(sp.space_xxxs)
                         .align_x(Alignment::Center)
                         .width(Length::Fill);
 
@@ -721,7 +729,7 @@ impl AppModel {
             };
 
             let paged_row = cosmic::iced::widget::row![prev_arrow, hourly_row, next_arrow]
-                .spacing(4)
+                .spacing(sp.space_xxxs)
                 .align_y(Alignment::Center)
                 .width(Length::Fill);
             return Some(paged_row.into());
@@ -734,6 +742,7 @@ impl AppModel {
         // --- Daily forecast (clickable rows with inline expansion) ---
         {
             let muted = muted_color();
+            let sp = cosmic::theme::spacing();
             let summaries = pair_daily_periods(&forecast.periods);
             let mut rows = cosmic::iced::widget::column![].spacing(0);
 
@@ -768,7 +777,7 @@ impl AppModel {
                 let temp_text = widget::text::body(temp_str);
 
                 let row_content = cosmic::iced::widget::row![icon, name_text, temp_text]
-                    .spacing(8)
+                    .spacing(sp.space_xxs)
                     .align_y(Alignment::Center)
                     .padding([6, 4]);
 
@@ -780,7 +789,7 @@ impl AppModel {
                 rows = rows.push(row_btn);
 
                 if is_expanded {
-                    let mut detail_col = cosmic::iced::widget::column![].spacing(4);
+                    let mut detail_col = cosmic::iced::widget::column![].spacing(sp.space_xxxs);
 
                     // NWS supplies distinct short/detailed strings while OM offers only a condition label.
                     // Whether pulls the prose forecast from NWS via a shim. If prose forecast is
@@ -836,9 +845,14 @@ impl AppModel {
                         ));
                     }
 
-                    let detail = widget::layer_container(detail_col.padding([4, 16, 8, 36]))
-                        .layer(cosmic::cosmic_theme::Layer::Secondary)
-                        .width(Length::Fill);
+                    let detail = widget::layer_container(detail_col.padding([
+                        sp.space_xxxs,
+                        sp.space_s,
+                        sp.space_xxs,
+                        4 + 24 + sp.space_xxs,
+                    ]))
+                    .layer(cosmic::cosmic_theme::Layer::Secondary)
+                    .width(Length::Fill);
                     rows = rows.push(detail);
                 }
             }
@@ -872,6 +886,7 @@ impl AppModel {
         .into()
     }
     pub(crate) fn view_about(&self) -> Element<'_, Message> {
+        let sp = cosmic::theme::spacing();
         let back_btn =
             widget::button::icon(widget::icon::from_name("go-previous-symbolic").symbolic(true))
                 .on_press(Message::BackToMain);
@@ -880,7 +895,7 @@ impl AppModel {
             widget::text::title4(fl!("about")).width(Length::Fill),
         ]
         .align_y(Alignment::Center)
-        .spacing(8);
+        .spacing(sp.space_xxs);
 
         let icon = widget::icon::from_name(format!("{APP_ID}-symbolic"))
             .symbolic(true)
@@ -891,7 +906,7 @@ impl AppModel {
         let version = widget::text::body(format!("v{}", env!("CARGO_PKG_VERSION")));
         let identity = cosmic::iced::widget::column![icon, name, summary, summary2, version]
             .align_x(Alignment::Center)
-            .spacing(4);
+            .spacing(sp.space_xxxs);
 
         let homepage = widget::button::link(fl!("about-homepage")).on_press(Message::OpenUrl(
             "https://github.com/nwxnw/cosmic-ext-whether".to_string(),
@@ -901,19 +916,19 @@ impl AppModel {
         ));
         let links = cosmic::iced::widget::column![homepage, issues]
             .align_x(Alignment::Center)
-            .spacing(4);
+            .spacing(sp.space_xxxs);
 
         let license = widget::text::caption("GPL-3.0");
 
         let body = cosmic::iced::widget::column![identity, links, license]
             .align_x(Alignment::Center)
-            .spacing(16)
+            .spacing(sp.space_s)
             .width(Length::Fill)
-            .padding(16);
+            .padding(sp.space_s);
 
         let content = cosmic::iced::widget::column![title_row, body]
-            .spacing(12)
-            .padding(16);
+            .spacing(sp.space_xs)
+            .padding(sp.space_s);
         widget::container(widget::scrollable(content))
             .width(Length::Fixed(360.0))
             .into()

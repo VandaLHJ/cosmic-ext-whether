@@ -1032,7 +1032,7 @@ fn flat_toggle_button_style() -> cosmic::theme::Button {
             let cosmic = theme.cosmic();
             cosmic::widget::button::Style {
                 background: Some(cosmic::iced::Background::Color(
-                    cosmic.background(false).component.hover.into(),
+                    cosmic.background(theme.transparent).component.hover.into(),
                 )),
                 border_radius: cosmic.radius_s().into(),
                 ..flat()
@@ -1042,7 +1042,11 @@ fn flat_toggle_button_style() -> cosmic::theme::Button {
             let cosmic = theme.cosmic();
             cosmic::widget::button::Style {
                 background: Some(cosmic::iced::Background::Color(
-                    cosmic.background(false).component.pressed.into(),
+                    cosmic
+                        .background(theme.transparent)
+                        .component
+                        .pressed
+                        .into(),
                 )),
                 border_radius: cosmic.radius_s().into(),
                 ..flat()

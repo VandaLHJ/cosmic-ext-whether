@@ -45,40 +45,30 @@ Everything Whether renders itself - conditions, wind directions, weekdays, times
 
 ## Installation
 
-Download the latest release from the [Releases](https://github.com/nwxnw/cosmic-ext-whether/releases) page.
+### COSMIC Store
 
-### Debian/Ubuntu (.deb)
+The applet is available in the COSMIC Store in the Applets category. Installing from the Store provides automatic updates.
 
-```sh
-sudo apt install ./cosmic-ext-whether_0.3.1_amd64.deb
-```
+To remove it, use the Store, or run `flatpak uninstall com.github.nwxnw.cosmic-ext-whether`.
 
-### Flatpak
+### Manual download
 
-```sh
-flatpak install --user ./cosmic-ext-whether_0.3.1.flatpak
-```
+Download the latest `.deb` or `.flatpak` release from the [Releases](https://github.com/nwxnw/cosmic-ext-whether/releases) page.
+
+**Debian/Ubuntu (.deb)**
+- Install: `sudo apt install ./cosmic-ext-whether_*_amd64.deb`
+- Uninstall: `sudo apt remove cosmic-ext-whether`
+
+**Flatpak bundle**
+- Install: `flatpak install --user ./cosmic-ext-whether_*.flatpak`
+- Uninstall: `flatpak uninstall --user com.github.nwxnw.cosmic-ext-whether`
 
 ### From source
 
-Requires Rust, [just](https://github.com/casey/just), and system dependencies:
+Requires Rust, [just](https://github.com/casey/just), and the `libxkbcommon-dev`, `wayland-protocols`, and `libwayland-dev` system dependencies.
 
-```sh
-sudo apt install libxkbcommon-dev wayland-protocols libwayland-dev
-```
-
-```sh
-just build-release
-just install
-```
-
-Then add **Whether** to your COSMIC panel via Settings > Desktop > Panel > Applets.
-
-### Uninstall
-
-```sh
-just uninstall
-```
+- Install: `just build-release && just install`
+- Uninstall: `just uninstall`
 
 If you previously installed via `sudo just install`, run `sudo just uninstall-system` once to clear the old `/usr` install.
 

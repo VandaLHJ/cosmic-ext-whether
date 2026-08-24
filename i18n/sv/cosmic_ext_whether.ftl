@@ -26,7 +26,7 @@ label-uv = UV
 feels-like = Känns som {$temp}
 gusting-to = vindpustar till {$gust}
 
-## CNuvarande kort- "Mer" expander
+## Nuvarande kort - "Mer" expander
 label-more = Mer
 label-less = Mindre
 label-dew-point = Daggpunkt
@@ -56,7 +56,7 @@ uv-level-high = Hög
 uv-level-very-high = Väldigt hög
 uv-level-extreme = Extrem
 
-## AQI-kategorier, både EU och USA-kategorier 
+## AQI-kategorier, både EU och USA-kategorier
 ## Reference - AQI-kategorier
 aqi-cat-good = Bra
 aqi-cat-moderate = Måttligt
@@ -69,6 +69,7 @@ aqi-cat-poor = Dåligt
 aqi-cat-very-poor = Väldigt dåligt
 aqi-cat-extremely-poor = Extremt dåligt
 
+## Reference - weather conditions
 condition-clear-sky = Klar himmel
 condition-mainly-clear = Huvudsakligen klart
 condition-partly-cloudy = Delvis molnigt
@@ -81,20 +82,23 @@ condition-freezing-rain = Underkylande regn
 condition-snow = Snö
 condition-snow-grains = Snökorn
 condition-rain-showers = Regnskurar
-condition-snow-showers = Snö skurar
+condition-snow-showers = Snöskurar
 condition-thunderstorm = Åskväder
 condition-thunderstorm-hail = Åskväder med hagel
 condition-unknown = Okänt
 
+## Reference - compass directions
+## ABBREVIATIONS, not words. Use your locale's conventional short form
 compass-n = N
-compass-ne = NV
+compass-ne = NO
 compass-e = O
-compass-se = SE
+compass-se = SO
 compass-s = S
 compass-sw = SV
 compass-w = V
 compass-nw = NV
 
+## Reference - weekdays
 weekday-monday = Måndag
 weekday-tuesday = Tisdag
 weekday-wednesday = Onsdag
@@ -103,7 +107,7 @@ weekday-friday = Fredag
 weekday-saturday = Lördag
 weekday-sunday = Söndag
 
-
+## Reference - relative day labels
 day-today = Idag
 day-this-afternoon = Denna eftermiddag
 day-tonight = Inatt
@@ -115,8 +119,7 @@ hourly-now = Nu
 time-am = FM
 time-pm = EM
 
-## Om sida 
-##Om
+## Om sida
 app-title = Whether
 about = Om
 about-summary = Data från Open-Meteo, NWS & JMA

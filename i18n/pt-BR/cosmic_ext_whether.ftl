@@ -85,19 +85,18 @@ condition-thunderstorm = Tempestade
 condition-thunderstorm-hail = Tempestade com granizo
 condition-unknown = Desconhecido
 
-## TODO - compass directions - now hold English stubs
 ## Reference - compass directions
 ## ABBREVIATIONS, not words. Use your locale's conventional short form
 ## (Swedish NE = "NO", not "Nordost")
 ## These render inline in the wind line of a 360px popup so should be short
 compass-n = N
 compass-ne = NE
-compass-e = E
+compass-e = L
 compass-se = SE
 compass-s = S
-compass-sw = SW
-compass-w = W
-compass-nw = NW
+compass-sw = SO
+compass-w = O
+compass-nw = NO
 
 ## Reference - weekdays
 weekday-monday = Segunda-feira
@@ -108,12 +107,11 @@ weekday-friday = Sexta-feira
 weekday-saturday = Sábado
 weekday-sunday = Domingo
 
-## TODO - the two unlabelled day bands and the AM/PM markers hold English stubs
 ## Reference - relative day labels
 day-today = Hoje
-day-this-afternoon = This Afternoon
+day-this-afternoon = Hoje à tarde
 day-tonight = Hoje à noite
-day-overnight = Overnight
+day-overnight = Madrugada
 
 # Hourly strip; "Now" heads the current hour's column
 hourly-now = Agora

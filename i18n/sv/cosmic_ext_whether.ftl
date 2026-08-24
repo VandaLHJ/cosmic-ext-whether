@@ -1,11 +1,11 @@
-## General / Status
+## Allmänt / Status
 default-heading = Väder
 loading = Laddar väderdata ...
 fetch-error = Kunde inte hämta väder: {$error}
 stale-data = Visar cachad data (uppdateringen misslyckades)
 no-location = Ingen plats angiven
 
-## Setup & search
+## Konfigurera & sök
 setup-title = Ange din plats
 search-placeholder = Sök efter en stad...
 search-button = Sök
@@ -13,7 +13,7 @@ searching = Söker...
 no-results = Inga resultat hittades
 search-error = Sökningen misslyckades: {$error}
 
-## Manage locations
+## Hantera platser
 manage-locations = Hantera platser
 no-saved-locations = Inga sparade platser
 
@@ -38,10 +38,10 @@ label-ozone = Ozon
 label-sunrise = Soluppgång
 label-sunset = Solnedgång
 
-##Alerts
+##Aviseringar
 alerts-heading = Aktiva varningar
 
-##Footer
+##Sidfot
 # `$minutes` is a number, so a plural selector works here if your language needs one.
 # Categories are per-language: English has only one/other, Polish adds few/many.
 # If a plural selector is used, one variant must be the default, marked `*` - normally *[other].
@@ -69,60 +69,51 @@ aqi-cat-poor = Dåligt
 aqi-cat-very-poor = Väldigt dåligt
 aqi-cat-extremely-poor = Extremt dåligt
 
-## TODO - weather conditions - now hold English stubs
-## Reference - weather conditions
-condition-clear-sky = Clear sky
-condition-mainly-clear = Mainly clear
-condition-partly-cloudy = Partly cloudy
-condition-overcast = Overcast
-condition-fog = Fog
-condition-drizzle = Drizzle
-condition-freezing-drizzle = Freezing drizzle
-condition-rain = Rain
-condition-freezing-rain = Freezing rain
-condition-snow = Snow
-condition-snow-grains = Snow grains
-condition-rain-showers = Rain showers
-condition-snow-showers = Snow showers
-condition-thunderstorm = Thunderstorm
-condition-thunderstorm-hail = Thunderstorm with hail
-condition-unknown = Unknown
+condition-clear-sky = Klar himmel
+condition-mainly-clear = Huvudsakligen klart
+condition-partly-cloudy = Delvis molnigt
+condition-overcast = Mulet
+condition-fog = Dimma
+condition-drizzle = Duggregn
+condition-freezing-drizzle = Underkylande duggregn
+condition-rain = Regn
+condition-freezing-rain = Underkylande regn
+condition-snow = Snö
+condition-snow-grains = Snökorn
+condition-rain-showers = Regnskurar
+condition-snow-showers = Snö skurar
+condition-thunderstorm = Åskväder
+condition-thunderstorm-hail = Åskväder med hagel
+condition-unknown = Okänt
 
-## TODO - compass directions - now hold English stubs
-## Reference - compass directions
-## ABBREVIATIONS, not words. Use your locale's conventional short form
-## (Swedish NE = "NO", not "Nordost")
-## These render inline in the wind line of a 360px popup so should be short
 compass-n = N
-compass-ne = NE
-compass-e = E
+compass-ne = NV
+compass-e = O
 compass-se = SE
 compass-s = S
-compass-sw = SW
-compass-w = W
-compass-nw = NW
+compass-sw = SV
+compass-w = V
+compass-nw = NV
 
-## TODO - weekdays, relative day labels and clock format - now hold English stubs
-## Reference - weekdays
-weekday-monday = Monday
-weekday-tuesday = Tuesday
-weekday-wednesday = Wednesday
-weekday-thursday = Thursday
-weekday-friday = Friday
-weekday-saturday = Saturday
-weekday-sunday = Sunday
+weekday-monday = Måndag
+weekday-tuesday = Tisdag
+weekday-wednesday = Onsdag
+weekday-thursday = Torsdag
+weekday-friday = Fredag
+weekday-saturday = Lördag
+weekday-sunday = Söndag
 
-## Reference - relative day labels
-day-today = Today
-day-this-afternoon = This Afternoon
-day-tonight = Tonight
-day-overnight = Overnight
+
+day-today = Idag
+day-this-afternoon = Denna eftermiddag
+day-tonight = Inatt
+day-overnight = Över natten
 
 # Hourly strip; "Now" heads the current hour's column
-hourly-now = Now
+hourly-now = Nu
 # 12-hour clock markers. Keep short — these render in a six-column strip.
-time-am = AM
-time-pm = PM
+time-am = FM
+time-pm = EM
 
 ## Om sida 
 ##Om

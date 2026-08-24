@@ -34,6 +34,7 @@ pub async fn fetch_weather(
             return None;
         }
         // reuse cached grid if present, else /points
+        let from_cache = cached_grid.is_some();
         let grid = match &cached_grid {
             Some(g) => g.clone(),
             None => match nws::fetch_points(&lat, &lon).await {
@@ -41,12 +42,19 @@ pub async fn fetch_weather(
                 Err(_) => return None,
             },
         };
-        match nws::fetch_forecast(&grid, use_fahrenheit).await {
-            Ok(periods) => Some((grid, periods)),
-            Err(_) => None,
+        let (periods, geometry) = nws::fetch_forecast(&grid, use_fahrenheit).await.ok()?;
+        // A cached grid can predate the v0.3.0 write fix and belong to a
+        // different location; the response polygon is the only evidence of
+        // that. A grid just derived from /points needs no check.
+        if from_cache && !nws::grid_matches(geometry.as_ref(), latf, lonf) {
+            let (fresh, _name) = nws::fetch_points(&lat, &lon).await.ok()?;
+            let (periods, _) = nws::fetch_forecast(&fresh, use_fahrenheit).await.ok()?;
+            // Accept whatever this yields - /points is authoritative for these
+            // coordinates whatever the polygon says.
+            return Some((fresh, periods));
         }
+        Some((grid, periods))
     };
-
     let (weather_res, aq_res, alerts_res, shim) = tokio::join!(
         weathervane::fetch_weather(latf, lonf, temp_unit, measurement),
         weathervane::fetch_air_quality(latf, lonf, None),

@@ -90,8 +90,15 @@ pub struct RelativeLocationProperties {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct Geometry {
+    pub coordinates: Vec<Vec<[f64; 2]>>, // Polygon: one ring of [lon, lat]
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct ForecastResponse {
     pub properties: ForecastProperties,
+    #[serde(default, deserialize_with = "lenient")]
+    pub geometry: Option<Geometry>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -371,4 +378,14 @@ pub fn short_location_name(display_name: &str) -> String {
     } else {
         display_name.to_string()
     }
+}
+
+/// Tolerate a reshaped `geometry` rather than failing the whole response.
+fn lenient<'de, D, T>(d: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::Deserialize<'de>,
+{
+    let v = serde_json::Value::deserialize(d)?;
+    Ok(T::deserialize(v).ok())
 }

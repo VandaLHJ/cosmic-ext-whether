@@ -2,12 +2,7 @@
 
 A weather applet for the [COSMIC](https://github.com/pop-os/cosmic-epoch) desktop panel.
 
-<table>
-  <tr>
-    <td valign="top"><img src="screenshots/whether.png" alt="United States - imperial, NWS" width="380"></td>
-    <td valign="top"><img src="screenshots/whether-eu.png" alt="Germany - metric, heat warning" width="380"></td>
-  </tr>
-</table>
+![Whether in English, Swedish, Polish, and Brazilian Portuguese](screenshots/whether-languages.png)
 
 ## Features
 

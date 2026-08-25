@@ -9,14 +9,14 @@
   <name>Whether</name>
   <summary>Weather forecasts, air quality, and alerts for the COSMIC panel</summary>
   <description>
-    <p>Whether is a weather applet for the COSMIC desktop panel, showing current conditions, hourly and 7-day forecasts, air quality, and weather alerts for locations worldwide.</p>
-    <p>Weather data is sourced automatically by location via weathervane — NWS in the United States, JMA in Japan, and Open-Meteo elsewhere.</p>
+    <p>Whether is a weather applet for the COSMIC desktop panel, showing current conditions, hourly and 7-day forecasts, and air quality for locations worldwide, with weather alerts in supported regions.</p>
+    <p>Weather data is sourced automatically by location via weathervane — Open-Meteo provides the worldwide base forecast, NWS overlays US current conditions and daily forecast detail, JMA provides local current temperatures in Japan.</p>
     <p>Features include:</p>
     <ul>
       <li>Current conditions: temperature, feels-like, humidity, wind and gusts, precipitation, AQI, and UV index</li>
       <li>Expandable detail: dew point, pressure, and the pollutant breakdown (PM2.5, PM10, ozone)</li>
       <li>Hourly and 7-day forecasts, with per-day wind, precipitation, and sunrise/sunset</li>
-      <li>Worldwide weather alerts</li>
+      <li>Weather alerts for the US, Europe, Canada, and Australia</li>
       <li>Location search with multiple saved locations</li>
       <li>Imperial/metric unit toggle</li>
     </ul>
@@ -46,15 +46,22 @@
   </categories>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/nwxnw/cosmic-ext-whether/master/screenshots/whether.png</image>
-      <caption>Current conditions and forecast with imperial units (United States)</caption>
-    </screenshot>
-    <screenshot>
-      <image>https://raw.githubusercontent.com/nwxnw/cosmic-ext-whether/master/screenshots/whether-eu.png</image>
-      <caption>Active weather alert with metric units (Germany)</caption>
+      <image>https://raw.githubusercontent.com/nwxnw/cosmic-ext-whether/master/screenshots/whether-languages-store.png</image>
+      <caption>Current conditions and forecast in English, Swedish, Polish, and Brazilian Portuguese</caption>
     </screenshot>
   </screenshots>
   <releases>
+    <release version="0.4.0" date="2026-08-25">
+      <description>
+        <ul>
+          <li>Localized weather conditions, wind directions, weekday names, and clock format</li>
+          <li>Added Polish and Brazilian Portuguese translations</li>
+          <li>12/24-hour clock now follows the COSMIC time setting</li>
+          <li>Spacing and padding scale with the COSMIC interface density setting</li>
+          <li>The popup now scrolls, so expanding a day no longer clips the footer</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.3.2" date="2026-07-23">
       <description>
         <ul>

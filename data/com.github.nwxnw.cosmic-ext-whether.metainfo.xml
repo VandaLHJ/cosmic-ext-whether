@@ -10,9 +10,9 @@
   <summary>Weather forecasts, air quality, and alerts for the COSMIC panel</summary>
   <description>
     <p>Whether is a weather applet for the COSMIC desktop panel, showing current conditions, hourly and 7-day forecasts, and air quality for locations worldwide, with weather alerts in supported regions.</p>
-    <p xml:lang="pl">Pogoda jest apletem pogodowym panelu dla środowiska COSMIC</p>
+    <p xml:lang="pl">Whether jest apletem pogodowym panelu dla środowiska COSMIC, pokazującym obecne warunki pogodowe, godzinne i tygodniowe prognozy, jakość powietrza dla całego świata z ostrzeżeniami pogodowymi dla wspieranych regionów.</p>
     <p>Weather data is sourced automatically by location via weathervane — Open-Meteo provides the worldwide base forecast, NWS overlays US current conditions and daily forecast detail, JMA provides local current temperatures in Japan.</p>
-    <p xml:lang="pl">Dane pogodowe są automatycznie zczywywane dla wybranego położenia przez weathervane - Open-Meteo zapewnia ogólnoświatowe prognozy, NWS nakłada obecne warunki i prognozy dla Stanów Zjednoczonych a JMA mierzy temperatury dla Japonii. </p>
+    <p xml:lang="pl">Dane pogodowe są automatycznie szczytywane dla wybranego położenia przez weathervane - Open-Meteo zapewnia ogólnoświatowe prognozy, NWS nakłada obecne warunki i prognozy dla Stanów Zjednoczonych a JMA mierzy temperatury dla Japonii. </p>
     <p>Features include:</p>
     <p xml:lang="pl">Funkcjonalności:</p>
     <ul>
@@ -64,15 +64,10 @@
       <description>
         <ul>
           <li>Localized weather conditions, wind directions, weekday names, and clock format</li>
-          <li xml:lang="pl">Lokalizacja językowa warunków pogodowych, kierunku wiatru, dni tygodnia i formatu zegara</li>
-          <li>Added Polish and Brazilian Portuguese translations</li>
-          <li xml:lang="pl">Dodane tłumaczenia - Polskie i Brazylijskie (Portugalskie)</li>
+          <li>Added Polish and Brazilian Portuguese translations</li>          
           <li>12/24-hour clock now follows the COSMIC time setting</li>
-          <li xml:lang="pl">Czas 12. lub 24. godzinowy zgodnie z ustawieniami czasu w Ustawienia COSMIC</li>
           <li>Spacing and padding scale with the COSMIC interface density setting</li>
-          <li xml:lang="pl">Odstęp i wypełnienie skaluje się z ustawieniami gęstości międzymordzia COSMIC</li>
           <li>The popup now scrolls, so expanding a day no longer clips the footer</li>
-          <li xml:lang="pl">Wyskakujące okno teraz można przewijać, więc rozszerzanie dnia już nie nakłada się na elementy poniżej</li>
         </ul>
       </description>
     </release>

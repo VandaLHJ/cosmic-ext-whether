@@ -58,7 +58,7 @@ Download the latest `.deb` or `.flatpak` release from the [Releases](https://git
 
 ### From source
 
-Requires Rust, [just](https://github.com/casey/just), and the `libxkbcommon-dev`, `wayland-protocols`, and `libwayland-dev` system dependencies.
+Requires Rust, [just](https://github.com/casey/just), and the `pkg-config`, `libxkbcommon-dev`, `wayland-protocols`, and `libwayland-dev` system dependencies.
 
 - Install: `just build-release && just install`
 - Uninstall: `just uninstall`

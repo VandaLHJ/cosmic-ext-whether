@@ -59,12 +59,14 @@
       <caption>Current conditions and forecast in English, Swedish, Polish, and Brazilian Portuguese</caption>
     </screenshot>
   </screenshots>
+  <!-- Release notes are English-only. Do not add xml:lang translations here;
+         translate <summary>, <description>, and screenshot <caption> instead. -->
   <releases>
     <release version="0.4.0" date="2026-08-25">
       <description>
         <ul>
           <li>Localized weather conditions, wind directions, weekday names, and clock format</li>
-          <li>Added Polish and Brazilian Portuguese translations</li>          
+          <li>Added Polish and Brazilian Portuguese translations</li>
           <li>12/24-hour clock now follows the COSMIC time setting</li>
           <li>Spacing and padding scale with the COSMIC interface density setting</li>
           <li>The popup now scrolls, so expanding a day no longer clips the footer</li>

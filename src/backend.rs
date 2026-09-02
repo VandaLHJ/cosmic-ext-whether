@@ -1,7 +1,7 @@
 use crate::nws;
 use crate::types::{
-    AirQuality, AlertSeverity, CurrentObservation, DailySun, Forecast, ForecastPeriod, GridInfo,
-    PrecipValue, WeatherAlert, WeatherResult,
+    AirQuality, AlertSeverity, Alerts, CurrentObservation, DailySun, Forecast, ForecastPeriod,
+    GridInfo, PrecipValue, WeatherAlert, WeatherResult,
 };
 use weathervane::{MeasurementSystem, TemperatureUnit};
 
@@ -58,17 +58,13 @@ pub async fn fetch_weather(
     let (weather_res, aq_res, alerts_res, shim) = tokio::join!(
         weathervane::fetch_weather(latf, lonf, temp_unit, measurement),
         weathervane::fetch_air_quality(latf, lonf, None),
-        weathervane::fetch_alerts(latf, lonf),
+        weathervane::fetch_alerts_detailed(latf, lonf),
         shim_fut,
     );
 
     let weather = weather_res.map_err(|e| e.to_string())?;
     let air_quality = aq_res.ok().map(map_air_quality);
-    let alerts = alerts_res
-        .unwrap_or_default()
-        .into_iter()
-        .map(map_alert)
-        .collect();
+    let alerts = alerts_from_result(alerts_res);
 
     let unit_str = if use_fahrenheit { "F" } else { "C" };
     let speed_unit = measurement.wind_speed_unit();
@@ -112,11 +108,36 @@ pub async fn fetch_weather(
     })
 }
 
-fn map_alert(a: weathervane::Alert) -> WeatherAlert {
+/// Classifies an alert fetch. Pure, so it is testable without a network.
+/// An `Err` must surface as `Unavailable`: swallowing it into an empty list
+/// made a network failure indistinguishable from a quiet day.
+fn alerts_from_result(res: weathervane::Result<weathervane::AlertReport>) -> Alerts {
+    match res {
+        Ok(report) => {
+            let list: Vec<WeatherAlert> = report.alerts.into_iter().map(map_alert).collect();
+            if report.region_filtered {
+                Alerts::Local(list)
+            } else {
+                Alerts::National(list)
+            }
+        }
+        Err(e) => {
+            eprintln!("whether: alert fetch failed: {e}");
+            Alerts::Unavailable(e.to_string())
+        }
+    }
+}
+
+fn map_alert(entry: weathervane::AlertEntry) -> WeatherAlert {
+    let a = entry.alert;
     WeatherAlert {
+        id: a.id,
         event: a.event,
         headline: a.headline,
+        description: a.description,
         severity: map_severity(a.severity),
+        expires: a.expires,
+        area_desc: entry.area_desc,
     }
 }
 
@@ -268,5 +289,53 @@ fn aqi_severity_index(c: &weathervane::AqiCategory) -> u8 {
         AqiCategory::Us(Us::Unhealthy) | AqiCategory::Eu(Eu::Poor) => 3,
         AqiCategory::Us(Us::VeryUnhealthy) | AqiCategory::Eu(Eu::VeryPoor) => 4,
         AqiCategory::Us(Us::Hazardous) | AqiCategory::Eu(Eu::ExtremelyPoor) => 5,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use weathervane::{Alert, AlertEntry, AlertReport};
+
+    fn entry(id: &str) -> AlertEntry {
+        AlertEntry {
+            alert: Alert {
+                id: id.into(),
+                event: "Wind Advisory".into(),
+                severity: weathervane::AlertSeverity::Minor,
+                headline: String::new(),
+                description: String::new(),
+                expires: chrono::DateTime::UNIX_EPOCH,
+            },
+            area_desc: "ClarkCounty".into(),
+        }
+    }
+
+    #[test]
+    fn filtered_report_is_local() {
+        let report = AlertReport {
+            alerts: vec![entry("a")],
+            region_filtered: true,
+        };
+        let alerts = alerts_from_result(Ok(report));
+        assert!(matches!(&alerts, Alerts::Local(a) if a.len() == 1 && a[0].id == "a"));
+        assert_eq!(alerts.list()[0].area_desc, "ClarkCounty");
+    }
+
+    #[test]
+    fn unfiltered_report_is_national() {
+        let report = AlertReport {
+            alerts: vec![entry("a"), entry("b")],
+            region_filtered: false,
+        };
+        let alerts = alerts_from_result(Ok(report));
+        assert!(matches!(alerts, Alerts::National(a) if a.len() == 2));
+    }
+
+    #[test]
+    fn fetch_error_is_unavailable_not_a_quiet_day() {
+        let alerts = alerts_from_result(Err(weathervane::Error::Timeout));
+        assert!(matches!(alerts, Alerts::Unavailable(_)));
+        assert!(alerts.list().is_empty());
     }
 }

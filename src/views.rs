@@ -2,7 +2,7 @@ use crate::app::{AppModel, Message};
 use crate::config::APP_ID;
 use crate::fl;
 use crate::types::{
-    condition_icon_for, condition_icon_from_text, pair_daily_periods, FetchState, Forecast,
+    condition_icon_for, condition_icon_from_text, pair_daily_periods, Alerts, FetchState, Forecast,
     ForecastPeriod,
 };
 use cosmic::iced::{Alignment, Color, Length};
@@ -58,7 +58,7 @@ impl AppModel {
     }
 
     pub(crate) fn weather_icon_name(&self) -> &str {
-        if !self.alerts.is_empty() {
+        if matches!(&self.alerts, Alerts::Local(a) if !a.is_empty()) {
             return "weather-severe-alert-symbolic";
         }
         // Prefer observation condition for panel icon
@@ -315,7 +315,14 @@ impl AppModel {
     fn view_alert_banner(&self) -> Option<Element<'_, Message>> {
         // Alert banner
         let sp = cosmic::theme::spacing();
-        if !self.alerts.is_empty() {
+        if let Alerts::Unavailable(_) = &self.alerts {
+            let text = fl!("alerts-unavailable");
+            let caption =
+                widget::text::caption(text).class(cosmic::theme::Text::Color(muted_color()));
+            return Some(caption.into());
+        }
+        let alerts = self.alerts.list();
+        if !alerts.is_empty() {
             let alert_icon: Element<'_, Message> =
                 cosmic::widget::icon(weather_icon_handle("weather-severe-alert-symbolic"))
                     .size(24)
@@ -329,7 +336,7 @@ impl AppModel {
             let mut alert_col = cosmic::iced::widget::column![].spacing(sp.space_xxxs);
             let heading_text = fl!("alerts-heading");
             alert_col = alert_col.push(widget::text::body(heading_text));
-            for alert in &self.alerts {
+            for alert in alerts {
                 alert_col = alert_col.push(widget::text::caption(alert.headline.clone()));
             }
 

@@ -40,6 +40,7 @@ label-sunset = Sunset
 
 ## Alerts
 alerts-heading = Active Alerts
+alerts-unavailable = Alerts unavailable
 
 ## Footer
 # `$minutes` is a number, so a plural selector works here if your language needs one.

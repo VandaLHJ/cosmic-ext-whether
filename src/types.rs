@@ -14,9 +14,39 @@ pub enum AlertSeverity {
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct WeatherAlert {
+    pub id: String,
+    pub description: String,
+    pub expires: chrono::DateTime<chrono::Utc>,
+    pub area_desc: String,
     pub event: String,
     pub headline: String,
     pub severity: AlertSeverity,
+}
+
+#[derive(Debug, Clone)]
+pub enum Alerts {
+    /// The alert fetch failed while the weather fetch succeeded. Never renders as "no alerts".
+    Unavailable(String),
+    /// Narrowed to the location by the provider. An empty list is a genuine quiet day.
+    Local(Vec<WeatherAlert>),
+    /// A MeteoAlarm national feed that could not be narrowed to the location. Entries are national, not local.
+    National(Vec<WeatherAlert>),
+}
+
+impl Default for Alerts {
+    fn default() -> Self {
+        Alerts::Local(Vec::new())
+    }
+}
+
+impl Alerts {
+    /// Every alert regardless of state, for views that list them.
+    pub fn list(&self) -> &[WeatherAlert] {
+        match self {
+            Alerts::Local(a) | Alerts::National(a) => a,
+            Alerts::Unavailable(_) => &[],
+        }
+    }
 }
 
 /// Unified weather result from either NWS or Open-Meteo.
@@ -24,7 +54,7 @@ pub struct WeatherAlert {
 pub struct WeatherResult {
     pub forecast: Forecast,
     pub cached_grid: Option<GridInfo>,
-    pub alerts: Vec<WeatherAlert>,
+    pub alerts: Alerts,
     pub observation: Option<CurrentObservation>,
     pub air_quality: Option<AirQuality>,
 }

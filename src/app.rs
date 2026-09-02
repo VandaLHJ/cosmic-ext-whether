@@ -14,8 +14,8 @@ use crate::backend;
 use crate::config::{self, detect_military_time, WhetherConfig, APP_ID};
 use crate::geocoding;
 use crate::types::{
-    short_location_name, AirQuality, CurrentObservation, FetchState, Forecast, SavedLocation,
-    SearchResult, WeatherAlert, WeatherResult,
+    short_location_name, AirQuality, Alerts, CurrentObservation, FetchState, Forecast,
+    SavedLocation, SearchResult, WeatherResult,
 };
 use crate::views::weather_icon_handle;
 
@@ -47,7 +47,7 @@ pub struct AppModel {
     pub(crate) expanded_day: Option<usize>,
     pub(crate) last_updated: Option<std::time::Instant>,
     pub(crate) location_names: Vec<String>,
-    pub(crate) alerts: Vec<WeatherAlert>,
+    pub(crate) alerts: Alerts,
     pub(crate) fetch_generation: u64,
     pub(crate) military_time: bool,
 }
@@ -77,7 +77,7 @@ impl Default for AppModel {
             expanded_day: None,
             last_updated: None,
             location_names: Vec::new(),
-            alerts: Vec::new(),
+            alerts: Alerts::default(),
             fetch_generation: 0,
             military_time: false,
         }
@@ -375,7 +375,7 @@ impl cosmic::Application for AppModel {
                     self.observation = None;
                     self.air_quality = None;
                     self.current_expanded = false;
-                    self.alerts.clear();
+                    self.alerts = Alerts::default();
                     return self.start_fetch();
                 }
             }
@@ -395,7 +395,7 @@ impl cosmic::Application for AppModel {
                         self.config.active_location_index = 0;
                         self.forecast = None;
                         self.observation = None;
-                        self.alerts.clear();
+                        self.alerts = Alerts::default();
                         self.fetch_state = FetchState::Idle;
                         self.page = Page::Setup;
                     } else if idx == self.config.active_location_index {
@@ -404,7 +404,7 @@ impl cosmic::Application for AppModel {
                         self.observation = None;
                         self.air_quality = None;
                         self.current_expanded = false;
-                        self.alerts.clear();
+                        self.alerts = Alerts::default();
                         self.location_names = self
                             .config
                             .locations

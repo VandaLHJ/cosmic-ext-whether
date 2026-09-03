@@ -23,6 +23,14 @@ pub struct WeatherAlert {
     pub severity: AlertSeverity,
 }
 
+impl WeatherAlert {
+    /// UI state key. One CAP identifier spans every area of its alert, so
+    /// `id` alone would open every area at once under a national feed
+    pub fn key(&self) -> String {
+        format!("{}|{}", self.id, self.area_desc)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Alerts {
     /// The alert fetch failed while the weather fetch succeeded. Never renders as "no alerts".

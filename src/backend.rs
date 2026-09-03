@@ -3,6 +3,7 @@ use crate::types::{
     AirQuality, AlertSeverity, Alerts, CurrentObservation, DailySun, Forecast, ForecastPeriod,
     GridInfo, PrecipValue, WeatherAlert, WeatherResult,
 };
+use std::collections::HashSet;
 use weathervane::{MeasurementSystem, TemperatureUnit};
 
 pub async fn fetch_weather(
@@ -114,7 +115,13 @@ pub async fn fetch_weather(
 fn alerts_from_result(res: weathervane::Result<weathervane::AlertReport>) -> Alerts {
     match res {
         Ok(report) => {
-            let list: Vec<WeatherAlert> = report.alerts.into_iter().map(map_alert).collect();
+            let mut seen = HashSet::new();
+            let list: Vec<WeatherAlert> = report
+                .alerts
+                .into_iter()
+                .map(map_alert)
+                .filter(|a| seen.insert(a.key()))
+                .collect();
             if report.region_filtered {
                 Alerts::Local(list)
             } else {
@@ -337,5 +344,35 @@ mod tests {
         let alerts = alerts_from_result(Err(weathervane::Error::Timeout));
         assert!(matches!(alerts, Alerts::Unavailable(_)));
         assert!(alerts.list().is_empty());
+    }
+
+    fn entry_in(id: &str, area: &str) -> AlertEntry {
+        let mut e = entry(id);
+        e.area_desc = area.into();
+        e
+    }
+
+    #[test]
+    fn polygon_duplicates_collapse_to_one_row() {
+        // The legacy atom feed emits one CAP alert twice for the same area,
+        // index_polygon=1 and =0, otherwise identical. Stockholm, 2026-09-02
+        let report = AlertReport {
+            alerts: vec![entry("a"), entry("a"), entry("b")],
+            region_filtered: false,
+        };
+        let alerts = alerts_from_result(Ok(report));
+        assert!(matches!(&alerts, Alerts::National(a) if a.len() ==2));
+        assert_eq!(alerts.list()[0].id, "a");
+        assert_eq!(alerts.list()[1].id, "b");
+    }
+
+    #[test]
+    fn same_identifier_area_stays_two_rows() {
+        let report = AlertReport {
+            alerts: vec![entry_in("a", "Berlin"), entry_in("a", "Brandenburg")],
+            region_filtered: false,
+        };
+        let alerts = alerts_from_result(Ok(report));
+        assert!(matches!(&alerts, Alerts::National(a) if a.len() == 2));
     }
 }

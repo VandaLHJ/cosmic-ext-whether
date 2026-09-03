@@ -289,7 +289,7 @@ impl cosmic::Application for AppModel {
                         // Keep expansion for alerts still present; drop ids that expired.
                         let live = self.alerts.list();
                         self.expanded_alerts
-                            .retain(|id| live.iter().any(|a| &a.id == id));
+                            .retain(|k| live.iter().any(|a| a.key() == *k));
                         self.observation = result.observation;
                         self.air_quality = result.air_quality;
                         self.hourly_offset = 0;

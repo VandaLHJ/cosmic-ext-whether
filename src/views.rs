@@ -335,7 +335,7 @@ impl AppModel {
 
             let mut alert_col = cosmic::iced::widget::column![].spacing(sp.space_xxxs);
             for alert in alerts {
-                let expanded = self.expanded_alerts.contains(&alert.id);
+                let expanded = self.expanded_alerts.contains(&alert.key());
                 let mut row =
                     cosmic::iced::widget::column![widget::text::body(alert.event.clone())]
                         .spacing(sp.space_xxxs);
@@ -343,7 +343,7 @@ impl AppModel {
                     row = row.push(widget::text::body(alert.headline.clone()));
                 }
                 let row_btn = widget::button::custom(row)
-                    .on_press(Message::ToggleAlert(alert.id.clone()))
+                    .on_press(Message::ToggleAlert(alert.key()))
                     .width(Length::Fill)
                     .class(flat_toggle_button_style());
                 alert_col = alert_col.push(row_btn);

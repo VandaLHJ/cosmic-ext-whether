@@ -2,8 +2,8 @@ use crate::app::{AppModel, Message};
 use crate::config::APP_ID;
 use crate::fl;
 use crate::types::{
-    condition_icon_for, condition_icon_from_text, group_alerts, pair_daily_periods, Alerts,
-    FetchState, Forecast, ForecastPeriod,
+    condition_icon_for, condition_icon_from_text, group_alerts, pair_daily_periods, AlertSeverity,
+    Alerts, FetchState, Forecast, ForecastPeriod,
 };
 use cosmic::iced::{Alignment, Color, Length};
 use cosmic::{widget, Element};
@@ -323,16 +323,6 @@ impl AppModel {
         }
         let alerts = self.alerts.list();
         if !alerts.is_empty() {
-            let alert_icon: Element<'_, Message> =
-                cosmic::widget::icon(weather_icon_handle("weather-severe-alert-symbolic"))
-                    .size(24)
-                    .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(|theme| {
-                        cosmic::iced::widget::svg::Style {
-                            color: Some(theme.cosmic().background(theme.transparent).on.into()),
-                        }
-                    })))
-                    .into();
-
             let mut alert_col = cosmic::iced::widget::column![].spacing(sp.space_xxxs);
 
             match &self.alerts {
@@ -344,6 +334,7 @@ impl AppModel {
                     );
                     for group in group_alerts(list) {
                         let row = cosmic::iced::widget::row![
+                            alert_glyph(&group.first.severity),
                             widget::text::body(group.first.event.clone()).width(Length::Fill),
                             widget::text::caption(group.count.to_string())
                                 .class(cosmic::theme::Text::Color(muted_color())),
@@ -356,30 +347,31 @@ impl AppModel {
                 _ => {
                     for alert in alerts {
                         let expanded = self.expanded_alerts.contains(&alert.key());
-                        let mut row =
-                            cosmic::iced::widget::column![widget::text::body(alert.event.clone())]
-                                .spacing(sp.space_xxxs);
+                        let mut event = widget::text::body(alert.event.clone());
+                        if alert.severity == AlertSeverity::Extreme {
+                            event = event.font(cosmic::font::bold());
+                        }
+                        let mut text_col =
+                            cosmic::iced::widget::column![event].spacing(sp.space_xxxs);
                         if expanded {
-                            row = row.push(widget::text::body(alert.headline.clone()));
+                            text_col = text_col.push(widget::text::body(alert.headline.clone()));
                         }
+                        let row =
+                            cosmic::iced::widget::row![alert_glyph(&alert.severity), text_col]
+                                .spacing(sp.space_xs)
+                                .align_y(Alignment::Start);
                         let row_btn = widget::button::custom(row)
-                                .on_press(Message::ToggleAlert(alert.key()))
-                                .width(Length::Fill)
-                                .class(flat_toggle_button_style());
-                            alert_col = alert_col.push(row_btn);
-                        }
+                            .on_press(Message::ToggleAlert(alert.key()))
+                            .width(Length::Fill)
+                            .class(flat_toggle_button_style());
+                        alert_col = alert_col.push(row_btn);
                     }
-
+                }
             }
 
-            let alert_row = cosmic::iced::widget::row![alert_icon, alert_col]
-                .spacing(sp.space_xxs)
-                .align_y(Alignment::Start)
-                .padding(sp.space_xs)
-                .width(Length::Fill);
-
-            let alert_banner = widget::layer_container(alert_row)
+            let alert_banner = widget::layer_container(alert_col)
                 .layer(cosmic::cosmic_theme::Layer::Secondary)
+                .padding(sp.space_xs)
                 .width(Length::Fill);
             Some(alert_banner.into())
         } else {
@@ -1117,6 +1109,32 @@ fn muted_color() -> Color {
     let mut c: Color = cosmic::theme::active().cosmic().background(false).on.into();
     c.a = 0.7;
     c
+}
+
+/// Glyph tint by CAP severity. Minor and Unknown stay at the surface's text
+/// color so only the rows that matter draw the eye.
+fn severity_tint(severity: &AlertSeverity, theme: &cosmic::Theme) -> Color {
+    let cosmic = theme.cosmic();
+    match severity {
+        AlertSeverity::Extreme | AlertSeverity::Severe => cosmic.destructive_color().into(),
+        AlertSeverity::Moderate => cosmic.warning_color().into(),
+        AlertSeverity::Minor | AlertSeverity::Unknown => {
+            cosmic.background(theme.transparent).on.into()
+        }
+    }
+}
+
+/// Per-row alert glyph, tinted by severity.
+fn alert_glyph<'a>(severity: &AlertSeverity) -> Element<'a, Message> {
+    let sev = severity.clone();
+    cosmic::widget::icon(weather_icon_handle("weather-severe-alert-symbolic"))
+        .size(16)
+        .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(move |theme| {
+            cosmic::iced::widget::svg::Style {
+                color: Some(severity_tint(&sev, theme)),
+            }
+        })))
+        .into()
 }
 
 fn uv_level(uv: f32) -> String {

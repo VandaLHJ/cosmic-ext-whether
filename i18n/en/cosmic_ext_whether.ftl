@@ -39,7 +39,6 @@ label-sunrise = Sunrise
 label-sunset = Sunset
 
 ## Alerts
-alerts-heading = Active Alerts
 alerts-unavailable = Alerts unavailable
 
 ## Footer

@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
 use cosmic::app::{Core, Task};
@@ -48,6 +49,9 @@ pub struct AppModel {
     pub(crate) last_updated: Option<std::time::Instant>,
     pub(crate) location_names: Vec<String>,
     pub(crate) alerts: Alerts,
+    /// Alert ids the user has expanded. Keyed on id, not index, so the set
+    /// survives a refresh in which entries shift as alerts expire.
+    pub(crate) expanded_alerts: HashSet<String>,
     pub(crate) fetch_generation: u64,
     pub(crate) military_time: bool,
 }
@@ -78,6 +82,7 @@ impl Default for AppModel {
             last_updated: None,
             location_names: Vec::new(),
             alerts: Alerts::default(),
+            expanded_alerts: HashSet::new(),
             fetch_generation: 0,
             military_time: false,
         }
@@ -106,6 +111,7 @@ pub enum Message {
     HourlyNext,
     ToggleDay(usize),
     ToggleCurrentMore,
+    ToggleAlert(String),
     ConfigChanged(WhetherConfig),
     OpenAbout,
     OpenUrl(String),
@@ -280,6 +286,10 @@ impl cosmic::Application for AppModel {
                             .collect();
 
                         self.alerts = result.alerts;
+                        // Keep expansion for alerts still present; drop ids that expired.
+                        let live = self.alerts.list();
+                        self.expanded_alerts
+                            .retain(|id| live.iter().any(|a| &a.id == id));
                         self.observation = result.observation;
                         self.air_quality = result.air_quality;
                         self.hourly_offset = 0;
@@ -446,6 +456,11 @@ impl cosmic::Application for AppModel {
                     self.expanded_day = None;
                 } else {
                     self.expanded_day = Some(idx);
+                }
+            }
+            Message::ToggleAlert(id) => {
+                if !self.expanded_alerts.remove(&id) {
+                    self.expanded_alerts.insert(id);
                 }
             }
             Message::ToggleUnits => {

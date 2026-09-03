@@ -39,7 +39,7 @@ label-sunrise = Nascer do sol
 label-sunset = Pôr do sol
 
 ## Alerts
-alerts-heading = Alertas ativos
+alerts-unavailable = Alerts unavailable
 
 ## Footer
 # `$minutes` is a number, so a plural selector works here if your language needs one.

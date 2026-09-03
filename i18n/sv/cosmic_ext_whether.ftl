@@ -39,7 +39,7 @@ label-sunrise = Soluppgång
 label-sunset = Solnedgång
 
 ##Aviseringar
-alerts-heading = Aktiva varningar
+alerts-unavailable = Alerts unavailable
 
 ##Sidfot
 # `$minutes` is a number, so a plural selector works here if your language needs one.

@@ -40,6 +40,10 @@ label-sunset = Sunset
 
 ## Alerts
 alerts-unavailable = Alerts unavailable
+alerts-national = { $count ->
+    [one] 1 alert nationwide, your area could not be determined
+    *[other] { $count } alerts nationwide, your area could not be determined
+}
 
 ## Footer
 # `$minutes` is a number, so a plural selector works here if your language needs one.

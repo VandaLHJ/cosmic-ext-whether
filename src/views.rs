@@ -2,8 +2,8 @@ use crate::app::{AppModel, Message};
 use crate::config::APP_ID;
 use crate::fl;
 use crate::types::{
-    condition_icon_for, condition_icon_from_text, pair_daily_periods, Alerts, FetchState, Forecast,
-    ForecastPeriod,
+    condition_icon_for, condition_icon_from_text, group_alerts, pair_daily_periods, Alerts,
+    FetchState, Forecast, ForecastPeriod,
 };
 use cosmic::iced::{Alignment, Color, Length};
 use cosmic::{widget, Element};
@@ -334,19 +334,42 @@ impl AppModel {
                     .into();
 
             let mut alert_col = cosmic::iced::widget::column![].spacing(sp.space_xxxs);
-            for alert in alerts {
-                let expanded = self.expanded_alerts.contains(&alert.key());
-                let mut row =
-                    cosmic::iced::widget::column![widget::text::body(alert.event.clone())]
-                        .spacing(sp.space_xxxs);
-                if expanded {
-                    row = row.push(widget::text::body(alert.headline.clone()));
+
+            match &self.alerts {
+                Alerts::National(list) => {
+                    let caption = fl!("alerts-national", count = list.len());
+                    alert_col = alert_col.push(
+                        widget::text::caption(caption)
+                            .class(cosmic::theme::Text::Color(muted_color())),
+                    );
+                    for group in group_alerts(list) {
+                        let row = cosmic::iced::widget::row![
+                            widget::text::body(group.first.event.clone()).width(Length::Fill),
+                            widget::text::caption(group.count.to_string())
+                                .class(cosmic::theme::Text::Color(muted_color())),
+                        ]
+                        .spacing(sp.space_xs)
+                        .align_y(Alignment::Center);
+                        alert_col = alert_col.push(row);
+                    }
                 }
-                let row_btn = widget::button::custom(row)
-                    .on_press(Message::ToggleAlert(alert.key()))
-                    .width(Length::Fill)
-                    .class(flat_toggle_button_style());
-                alert_col = alert_col.push(row_btn);
+                _ => {
+                    for alert in alerts {
+                        let expanded = self.expanded_alerts.contains(&alert.key());
+                        let mut row =
+                            cosmic::iced::widget::column![widget::text::body(alert.event.clone())]
+                                .spacing(sp.space_xxxs);
+                        if expanded {
+                            row = row.push(widget::text::body(alert.headline.clone()));
+                        }
+                        let row_btn = widget::button::custom(row)
+                                .on_press(Message::ToggleAlert(alert.key()))
+                                .width(Length::Fill)
+                                .class(flat_toggle_button_style());
+                            alert_col = alert_col.push(row_btn);
+                        }
+                    }
+
             }
 
             let alert_row = cosmic::iced::widget::row![alert_icon, alert_col]

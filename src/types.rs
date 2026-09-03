@@ -31,6 +31,30 @@ impl WeatherAlert {
     }
 }
 
+/// One row of a national feed: the first alert seen with this
+/// (`event`, `severity`) pair and many alerts share it.
+pub struct AlertGroup<'a> {
+    pub first: &'a WeatherAlert,
+    pub count: usize,
+}
+
+/// Group a national feed by (`event`, `severity`) in first-seen order. A
+/// national feed is largely one event repeated per region, so alert
+/// rows read as duplicates.
+pub fn group_alerts(alerts: &[WeatherAlert]) -> Vec<AlertGroup<'_>> {
+    let mut groups: Vec<AlertGroup<'_>> = Vec::new();
+    for a in alerts {
+        match groups
+            .iter_mut()
+            .find(|g| g.first.event == a.event && g.first.severity == a.severity)
+        {
+            Some(g) => g.count += 1,
+            None => groups.push(AlertGroup { first: a, count: 1 }),
+        }
+    }
+    groups
+}
+
 #[derive(Debug, Clone)]
 pub enum Alerts {
     /// The alert fetch failed while the weather fetch succeeded. Never renders as "no alerts".
@@ -426,4 +450,38 @@ where
 {
     let v = serde_json::Value::deserialize(d)?;
     Ok(T::deserialize(v).ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn alert(event: &str, severity: AlertSeverity) -> WeatherAlert {
+        WeatherAlert {
+            id: "x".into(),
+            description: String::new(),
+            expires: chrono::DateTime::<chrono::Utc>::MIN_UTC,
+            area_desc: String::new(),
+            event: event.into(),
+            headline: String::new(),
+            severity,
+        }
+    }
+
+    #[test]
+    fn groups_by_event_and_severity_in_first_seen_order() {
+        let list = vec![
+            alert("Heat", AlertSeverity::Moderate),
+            alert("Heat", AlertSeverity::Severe),
+            alert("Heat", AlertSeverity::Moderate),
+            alert("Wind", AlertSeverity::Moderate),
+        ];
+        let groups = group_alerts(&list);
+        let rows: Vec<(&str, usize)> = groups
+            .iter()
+            .map(|g| (g.first.event.as_str(), g.count))
+            .collect();
+        assert_eq!(rows, vec![("Heat", 2), ("Heat", 1), ("Wind", 1)]);
+        assert_eq!(groups[1].first.severity, AlertSeverity::Severe);
+    }
 }

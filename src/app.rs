@@ -2,14 +2,21 @@ use std::collections::HashSet;
 use std::sync::LazyLock;
 
 use cosmic::app::{Core, Task};
+use cosmic::cctk::wayland_protocols::xdg::shell::client::xdg_positioner::{Anchor, Gravity};
 use cosmic::iced::core::window;
+use cosmic::iced::runtime::platform_specific::wayland::popup::{SctkPopupSettings, SctkPositioner};
 use cosmic::iced::window::Id;
-use cosmic::iced::{Alignment, Length, Rectangle, Subscription};
+use cosmic::iced::{Alignment, Length, Limits, Rectangle, Subscription};
 use cosmic::surface::action::{app_popup, destroy_popup};
 use cosmic::widget;
 use cosmic::Element;
 
 static AUTOSIZE_MAIN_ID: LazyLock<widget::Id> = LazyLock::new(|| widget::Id::new("autosize-main"));
+
+/// Spike knobs. Flip `FLYOUT_GRAB` between runs; raise `FLYOUT_MAX_WIDTH`
+/// until the 71-character ruler fits on one line.
+const FLYOUT_GRAB: bool = false;
+pub(crate) const FLYOUT_MAX_WIDTH: f32 = 680.0;
 
 use crate::backend;
 use crate::config::{self, detect_military_time, WhetherConfig, APP_ID};
@@ -31,6 +38,7 @@ pub enum Page {
 pub struct AppModel {
     pub(crate) core: Core,
     pub(crate) popup: Option<Id>,
+    pub(crate) flyout: Option<Id>,
     pub(crate) air_quality: Option<AirQuality>,
     pub(crate) current_expanded: bool,
     pub(crate) config: WhetherConfig,
@@ -64,6 +72,7 @@ impl Default for AppModel {
         Self {
             core: Core::default(),
             popup: None,
+            flyout: None,
             air_quality: None,
             current_expanded: false,
             config: WhetherConfig::default(),
@@ -92,6 +101,10 @@ impl Default for AppModel {
 #[derive(Clone, Debug)]
 pub enum Message {
     PopupClosed(Id),
+    /// Panel button pressed while the popup is open: destroy child first.
+    ClosePopup,
+    /// The fly-out trigger row: (`layout.virtual_offset()`, row bounds).
+    ToggleFlyout(cosmic::iced::Vector, Rectangle),
     Surface(cosmic::surface::Action),
     FetchWeather,
     WeatherFetched(u64, Box<Result<WeatherResult, String>>),
@@ -202,8 +215,8 @@ impl cosmic::Application for AppModel {
             .padding(if horizontal { [0, pad] } else { [pad, 0] })
             .class(cosmic::theme::Button::AppletIcon)
             .on_press_with_rectangle(move |offset, bounds| {
-                if let Some(id) = have_popup {
-                    Message::Surface(destroy_popup(id))
+                if have_popup.is_some() {
+                    Message::ClosePopup
                 } else {
                     Message::Surface(app_popup::<AppModel>(
                         |_| Default::default(),
@@ -234,7 +247,10 @@ impl cosmic::Application for AppModel {
         widget::autosize::autosize(button, AUTOSIZE_MAIN_ID.clone()).into()
     }
 
-    fn view_window(&self, _id: Id) -> Element<'_, Message> {
+    fn view_window(&self, id: Id) -> Element<'_, Message> {
+        if self.flyout == Some(id) {
+            return self.view_flyout();
+        }
         let content = match &self.page {
             Page::Setup => self.view_setup(),
             Page::Main => self.view_main(),
@@ -252,9 +268,71 @@ impl cosmic::Application for AppModel {
                 ));
             }
             Message::PopupClosed(id) => {
-                if self.popup.as_ref() == Some(&id) {
-                    self.popup = None;
+                if self.flyout == Some(id) {
+                    self.flyout = None;
                 }
+                if self.popup == Some(id) {
+                    self.popup = None;
+                    self.flyout = None;
+                }
+            }
+            Message::ClosePopup => {
+                let Some(popup) = self.popup else {
+                    return Task::none();
+                };
+                let close_parent = self.update(Message::Surface(destroy_popup(popup)));
+                return match self.flyout.take() {
+                    Some(child) => self
+                        .update(Message::Surface(destroy_popup(child)))
+                        .chain(close_parent),
+                    None => close_parent,
+                };
+            }
+            Message::ToggleFlyout(offset, bounds) => {
+                if let Some(id) = self.flyout {
+                    return self.update(Message::Surface(destroy_popup(id)));
+                }
+                let Some(parent) = self.popup else {
+                    return Task::none();
+                };
+                let anchor_rect = Rectangle {
+                    x: (bounds.x - offset.x) as i32,
+                    y: (bounds.y - offset.y) as i32,
+                    width: bounds.width as i32,
+                    height: bounds.height as i32,
+                };
+                return self.update(Message::Surface(app_popup::<AppModel>(
+                    |_| Default::default(),
+                    move |state: &mut AppModel| {
+                        let id = Id::unique();
+                        state.flyout = Some(id);
+                        SctkPopupSettings {
+                            parent,
+                            id,
+                            positioner: SctkPositioner {
+                                size: None,
+                                size_limits: Limits::NONE
+                                    .min_width(1.0)
+                                    .max_width(FLYOUT_MAX_WIDTH)
+                                    .min_height(1.0)
+                                    .max_height(1000.0),
+                                anchor_rect,
+                                anchor: Anchor::TopRight,
+                                gravity: Gravity::BottomRight,
+                                // slide_y, flip_x, flip_y; no slide_x, so it flips
+                                // to the other side at a screen edge, as the menu does.
+                                constraint_adjustment: 15 & !1,
+                                offset: (0, 0),
+                                reactive: true,
+                            },
+                            parent_size: None,
+                            grab: FLYOUT_GRAB,
+                            close_with_children: false,
+                            input_zone: None,
+                        }
+                    },
+                    None,
+                )));
             }
             Message::FetchWeather => {
                 return self.start_fetch();

@@ -8,6 +8,9 @@ use crate::types::{
 use cosmic::iced::{Alignment, Color, Length};
 use cosmic::{widget, Element};
 
+static AUTOSIZE_FLYOUT_ID: std::sync::LazyLock<widget::Id> =
+    std::sync::LazyLock::new(|| widget::Id::new("autosize-flyout"));
+
 fn weather_icon_for_period(period: &ForecastPeriod) -> &'static str {
     match period.condition {
         Some(c) => condition_icon_for(c, period.is_daytime),
@@ -394,6 +397,23 @@ impl AppModel {
                             .width(Length::Fill)
                             .class(flat_toggle_button_style());
                         alert_col = alert_col.push(row_btn);
+                        if expanded {
+                            alert_col = alert_col.push(
+                                widget::container(
+                                    widget::button::custom(widget::text::caption("Open fly-out"))
+                                        .on_press_with_rectangle(|offset, bounds| {
+                                            Message::ToggleFlyout(offset, bounds)
+                                        })
+                                        .class(cosmic::theme::Button::Link),
+                                )
+                                .padding([
+                                    0,
+                                    0,
+                                    0,
+                                    16 + sp.space_xs,
+                                ]),
+                            );
+                        }
                     }
                 }
             }
@@ -995,6 +1015,45 @@ impl AppModel {
             .padding(sp.space_s);
         widget::container(widget::scrollable(content))
             .width(Length::Fixed(360.0))
+            .into()
+    }
+
+    pub(crate) fn view_flyout(&self) -> Element<'_, Message> {
+        let sp = cosmic::theme::spacing();
+        let ruler: String = "1234567890".repeat(7) + "1";
+        let content = cosmic::iced::widget::column![
+            widget::text::title4("Fly-out spike"),
+            widget::text::monotext(ruler),
+            widget::text::body(
+                "Hello from a child popup. This surface carries its own limits, so it is not clamped to 360px, and it does not move anything in the main popup."
+            ),
+        ]
+        .spacing(sp.space_xs);
+        let card =
+            widget::container(content)
+                .padding(sp.space_s)
+                .class(cosmic::theme::Container::custom(|theme| {
+                    let cosmic = theme.cosmic();
+                    let bg = cosmic.background(theme.transparent);
+                    cosmic::iced::widget::container::Style {
+                        text_color: Some(bg.on.into()),
+                        background: Some(cosmic::iced::Color::from(bg.base).into()),
+                        border: cosmic::iced::Border {
+                            radius: cosmic.corner_radii.radius_m.into(),
+                            width: 1.0,
+                            color: bg.divider.into(),
+                        },
+                        ..Default::default()
+                    }
+                }));
+        widget::autosize::autosize(card, AUTOSIZE_FLYOUT_ID.clone())
+            .limits(
+                cosmic::iced::Limits::NONE
+                    .min_width(1.0)
+                    .max_width(crate::app::FLYOUT_MAX_WIDTH)
+                    .min_height(1.0)
+                    .max_height(1000.0),
+            )
             .into()
     }
 

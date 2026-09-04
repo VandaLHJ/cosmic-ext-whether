@@ -9,13 +9,11 @@ use cosmic::iced::window::Id;
 use cosmic::iced::{Alignment, Length, Limits, Rectangle, Subscription};
 use cosmic::surface::action::{app_popup, destroy_popup};
 use cosmic::widget;
+use cosmic::Application;
 use cosmic::Element;
 
 static AUTOSIZE_MAIN_ID: LazyLock<widget::Id> = LazyLock::new(|| widget::Id::new("autosize-main"));
 
-/// Spike knobs. Flip `FLYOUT_GRAB` between runs; raise `FLYOUT_MAX_WIDTH`
-/// until the 71-character ruler fits on one line.
-const FLYOUT_GRAB: bool = false;
 pub(crate) const FLYOUT_MAX_WIDTH: f32 = 680.0;
 
 use crate::backend;
@@ -39,6 +37,7 @@ pub struct AppModel {
     pub(crate) core: Core,
     pub(crate) popup: Option<Id>,
     pub(crate) flyout: Option<Id>,
+    pub(crate) flyout_for: Option<String>,
     pub(crate) air_quality: Option<AirQuality>,
     pub(crate) current_expanded: bool,
     pub(crate) config: WhetherConfig,
@@ -73,6 +72,7 @@ impl Default for AppModel {
             core: Core::default(),
             popup: None,
             flyout: None,
+            flyout_for: None,
             air_quality: None,
             current_expanded: false,
             config: WhetherConfig::default(),
@@ -104,7 +104,7 @@ pub enum Message {
     /// Panel button pressed while the popup is open: destroy child first.
     ClosePopup,
     /// The fly-out trigger row: (`layout.virtual_offset()`, row bounds).
-    ToggleFlyout(cosmic::iced::Vector, Rectangle),
+    ToggleFlyout(String, cosmic::iced::Vector, Rectangle),
     Surface(cosmic::surface::Action),
     FetchWeather,
     WeatherFetched(u64, Box<Result<WeatherResult, String>>),
@@ -261,6 +261,64 @@ impl cosmic::Application for AppModel {
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
+        let task = self.handle(message);
+        self.reconcile_flyout(task)
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        let config_sub = self
+            .core()
+            .watch_config::<WhetherConfig>(APP_ID)
+            .map(|update| Message::ConfigChanged(update.config));
+
+        let timer_sub = cosmic::iced::time::every(std::time::Duration::from_secs(
+            self.config.refresh_interval_minutes as u64 * 60,
+        ))
+        .map(|_| Message::Tick(()));
+
+        Subscription::batch(vec![config_sub, timer_sub])
+    }
+
+    fn on_close_requested(&self, id: window::Id) -> Option<Message> {
+        Some(Message::PopupClosed(id))
+    }
+
+    fn style(&self) -> Option<cosmic::iced::theme::Style> {
+        Some(cosmic::applet::style())
+    }
+}
+
+impl AppModel {
+    /// Destroy the fly-out when the row it hangs off is no longer on screen:
+    /// collapsed, pruned by a fetch, cleared by a location change, or hidden
+    /// by a page change. One invariant instead of a destroy at every site.
+    fn reconcile_flyout(&mut self, task: Task<Message>) -> Task<Message> {
+        if self.flyout.is_none() && self.flyout_for.is_none() {
+            return task;
+        }
+        if self
+            .flyout_for
+            .as_deref()
+            .is_some_and(|key| self.flyout_row_visible(key))
+        {
+            return task;
+        }
+        self.flyout_for = None;
+        match self.flyout.take() {
+            // Batched, not chained: after a location change `task` is the
+            // fetch, and the destroy must not wait for it.
+            Some(id) => Task::batch([task, self.update(Message::Surface(destroy_popup(id)))]),
+            None => task,
+        }
+    }
+
+    fn flyout_row_visible(&self, key: &str) -> bool {
+        self.page == Page::Main
+            && self.expanded_alerts.contains(key)
+            && self.alerts.list().iter().any(|a| a.key() == key)
+    }
+
+    fn handle(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Surface(a) => {
                 return cosmic::task::message(cosmic::Action::Cosmic(
@@ -270,10 +328,12 @@ impl cosmic::Application for AppModel {
             Message::PopupClosed(id) => {
                 if self.flyout == Some(id) {
                     self.flyout = None;
+                    self.flyout_for = None;
                 }
                 if self.popup == Some(id) {
                     self.popup = None;
                     self.flyout = None;
+                    self.flyout_for = None;
                 }
             }
             Message::ClosePopup => {
@@ -288,20 +348,26 @@ impl cosmic::Application for AppModel {
                     None => close_parent,
                 };
             }
-            Message::ToggleFlyout(offset, bounds) => {
-                if let Some(id) = self.flyout {
-                    return self.update(Message::Surface(destroy_popup(id)));
+            Message::ToggleFlyout(key, offset, bounds) => {
+                let close = self
+                    .flyout
+                    .take()
+                    .map(|id| self.update(Message::Surface(destroy_popup(id))));
+                let same_row = self.flyout_for.take().is_some_and(|k| k == key);
+                if same_row {
+                    return close.unwrap_or_else(Task::none);
                 }
                 let Some(parent) = self.popup else {
                     return Task::none();
                 };
+                self.flyout_for = Some(key);
                 let anchor_rect = Rectangle {
                     x: (bounds.x - offset.x) as i32,
                     y: (bounds.y - offset.y) as i32,
                     width: bounds.width as i32,
                     height: bounds.height as i32,
                 };
-                return self.update(Message::Surface(app_popup::<AppModel>(
+                let open = self.update(Message::Surface(app_popup::<AppModel>(
                     |_| Default::default(),
                     move |state: &mut AppModel| {
                         let id = Id::unique();
@@ -326,13 +392,22 @@ impl cosmic::Application for AppModel {
                                 reactive: true,
                             },
                             parent_size: None,
-                            grab: FLYOUT_GRAB,
+                            // The parent already holds the seat grab, so the child
+                            // inside its tree stays interactive either way; true keeps
+                            // dismissal with the compositor. Spike, 2026-09-04.
+                            grab: true,
                             close_with_children: false,
                             input_zone: None,
                         }
                     },
                     None,
                 )));
+                // Destroy the old child before the new one opens; the same
+                // ordered chain the panel-button close uses.
+                return match close {
+                    Some(close) => close.chain(open),
+                    None => open,
+                };
             }
             Message::FetchWeather => {
                 return self.start_fetch();
@@ -587,30 +662,6 @@ impl cosmic::Application for AppModel {
         Task::none()
     }
 
-    fn subscription(&self) -> Subscription<Message> {
-        let config_sub = self
-            .core()
-            .watch_config::<WhetherConfig>(APP_ID)
-            .map(|update| Message::ConfigChanged(update.config));
-
-        let timer_sub = cosmic::iced::time::every(std::time::Duration::from_secs(
-            self.config.refresh_interval_minutes as u64 * 60,
-        ))
-        .map(|_| Message::Tick(()));
-
-        Subscription::batch(vec![config_sub, timer_sub])
-    }
-
-    fn on_close_requested(&self, id: window::Id) -> Option<Message> {
-        Some(Message::PopupClosed(id))
-    }
-
-    fn style(&self) -> Option<cosmic::iced::theme::Style> {
-        Some(cosmic::applet::style())
-    }
-}
-
-impl AppModel {
     /// Bump the fetch generation, mark loading, and dispatch a fetch for the active
     /// location. Central choke point so every dispatch site stamps the generation
     fn start_fetch(&mut self) -> Task<Message> {
@@ -646,5 +697,45 @@ fn fetch_weather_task(config: &WhetherConfig, generation: u64) -> Task<Message> 
         )
     } else {
         Task::none()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{AlertSeverity, WeatherAlert};
+
+    fn alert(id: &str) -> WeatherAlert {
+        WeatherAlert {
+            id: id.into(),
+            description: "text".into(),
+            expires: chrono::Utc::now(),
+            area_desc: "A".into(),
+            event: "Wind".into(),
+            headline: String::new(),
+            severity: AlertSeverity::Moderate,
+        }
+    }
+
+    #[test]
+    fn flyout_row_is_visible_only_when_expanded_present_and_on_main() {
+        let mut m = AppModel::default();
+        let a = alert("x");
+        let key = a.key();
+        m.page = Page::Main;
+        m.alerts = Alerts::Local(vec![a]);
+        m.expanded_alerts.insert(key.clone());
+        assert!(m.flyout_row_visible(&key));
+
+        m.expanded_alerts.clear();
+        assert!(!m.flyout_row_visible(&key), "collapsed");
+        m.expanded_alerts.insert(key.clone());
+
+        m.page = Page::Locations;
+        assert!(!m.flyout_row_visible(&key), "off the main page");
+        m.page = Page::Main;
+
+        m.alerts = Alerts::default();
+        assert!(!m.flyout_row_visible(&key), "pruned or location changed");
     }
 }

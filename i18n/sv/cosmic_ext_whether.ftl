@@ -45,6 +45,7 @@ alerts-national = { $count ->
     *[other] { $count } alerts nationwide, your area could not be determined
 }
 alert-until = Until { $time }
+alert-full-description = Full description
 
 ##Sidfot
 # `$minutes` is a number, so a plural selector works here if your language needs one.

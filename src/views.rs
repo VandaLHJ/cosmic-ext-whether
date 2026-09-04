@@ -397,12 +397,21 @@ impl AppModel {
                             .width(Length::Fill)
                             .class(flat_toggle_button_style());
                         alert_col = alert_col.push(row_btn);
-                        if expanded {
+                        if expanded && !alert.description.is_empty() {
+                            let key = alert.key();
+                            let label = cosmic::iced::widget::row![
+                                widget::text::body(fl!("alert-full-description")),
+                                widget::icon::from_name("go-next-symbolic")
+                                    .size(16)
+                                    .symbolic(true),
+                            ]
+                            .spacing(sp.space_xxxs)
+                            .align_y(Alignment::Center);
                             alert_col = alert_col.push(
                                 widget::container(
-                                    widget::button::custom(widget::text::caption("Open fly-out"))
-                                        .on_press_with_rectangle(|offset, bounds| {
-                                            Message::ToggleFlyout(offset, bounds)
+                                    widget::button::custom(label)
+                                        .on_press_with_rectangle(move |offset, bounds| {
+                                            Message::ToggleFlyout(key.clone(), offset, bounds)
                                         })
                                         .class(cosmic::theme::Button::Link),
                                 )
@@ -1020,15 +1029,24 @@ impl AppModel {
 
     pub(crate) fn view_flyout(&self) -> Element<'_, Message> {
         let sp = cosmic::theme::spacing();
-        let ruler: String = "1234567890".repeat(7) + "1";
-        let content = cosmic::iced::widget::column![
-            widget::text::title4("Fly-out spike"),
-            widget::text::monotext(ruler),
-            widget::text::body(
-                "Hello from a child popup. This surface carries its own limits, so it is not clamped to 360px, and it does not move anything in the main popup."
-            ),
-        ]
-        .spacing(sp.space_xs);
+        let alert = self
+            .flyout_for
+            .as_deref()
+            .and_then(|key| self.alerts.list().iter().find(|a| a.key() == key));
+        let content: Element<'_, Message> = match alert {
+            Some(alert) => {
+                let title = widget::text::title4(capitalize_first(&alert.event));
+                // Monospace and never reflowed: NWS text is column-aligned
+                // teletype with hard breaks, and the width is sized to it.
+                let body = widget::scrollable(widget::text::monotext(alert.description.clone()))
+                    .class(cosmic::theme::iced::Scrollable::Minimal);
+                cosmic::iced::widget::column![title, body]
+                    .spacing(sp.space_xs)
+                    .into()
+            }
+            // Owner gone; the invariant destroys this surface on the next message.
+            None => widget::text::body("").into(),
+        };
         let card =
             widget::container(content)
                 .padding(sp.space_s)

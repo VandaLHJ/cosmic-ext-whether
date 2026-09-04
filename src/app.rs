@@ -15,8 +15,8 @@ use crate::backend;
 use crate::config::{self, detect_military_time, WhetherConfig, APP_ID};
 use crate::geocoding;
 use crate::types::{
-    short_location_name, AirQuality, Alerts, CurrentObservation, FetchState, Forecast,
-    SavedLocation, SearchResult, WeatherResult,
+    group_alerts, short_location_name, AirQuality, Alerts, CurrentObservation, FetchState,
+    Forecast, SavedLocation, SearchResult, WeatherResult,
 };
 use crate::views::weather_icon_handle;
 
@@ -288,8 +288,11 @@ impl cosmic::Application for AppModel {
                         self.alerts = result.alerts;
                         // Keep expansion for alerts still present; drop ids that expired.
                         let live = self.alerts.list();
-                        self.expanded_alerts
-                            .retain(|k| live.iter().any(|a| a.key() == *k));
+                        let groups = group_alerts(live);
+                        self.expanded_alerts.retain(|k| {
+                            live.iter().any(|a| a.key() == *k)
+                                || groups.iter().any(|g| g.key() == *k)
+                        });
                         self.observation = result.observation;
                         self.air_quality = result.air_quality;
                         self.hourly_offset = 0;

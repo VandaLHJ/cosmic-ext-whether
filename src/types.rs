@@ -31,11 +31,43 @@ impl WeatherAlert {
     }
 }
 
-/// One row of a national feed: the first alert seen with this
-/// (`event`, `severity`) pair and many alerts share it.
+/// One row of a national feed: every alert sharing an (`event`, `severity`)
+/// pair, in first-seen order. Never empty.
 pub struct AlertGroup<'a> {
-    pub first: &'a WeatherAlert,
-    pub count: usize,
+    pub members: Vec<&'a WeatherAlert>,
+}
+
+impl<'a> AlertGroup<'a> {
+    pub fn first(&self) -> &'a WeatherAlert {
+        self.members[0]
+    }
+
+    pub fn count(&self) -> usize {
+        self.members.len()
+    }
+
+    /// UI state key for the group row. Prefixed so it can never collide with
+    /// a `WeatherAlert::key()`.
+    pub fn key(&self) -> String {
+        format!("group|{}|{:?}", self.first().event, self.first().severity)
+    }
+
+    pub fn areas(&self) -> Vec<&'a str> {
+        let mut seen = std::collections::HashSet::new();
+        self.members
+            .iter()
+            .map(|a| a.area_desc.as_str())
+            .filter(|a| !a.is_empty() && seen.insert(*a))
+            .collect()
+    }
+
+    pub fn latest_expires(&self) -> chrono::DateTime<chrono::Utc> {
+        self.members
+            .iter()
+            .map(|a| a.expires)
+            .max()
+            .unwrap_or_else(|| self.first().expires)
+    }
 }
 
 /// Group a national feed by (`event`, `severity`) in first-seen order. A
@@ -46,10 +78,10 @@ pub fn group_alerts(alerts: &[WeatherAlert]) -> Vec<AlertGroup<'_>> {
     for a in alerts {
         match groups
             .iter_mut()
-            .find(|g| g.first.event == a.event && g.first.severity == a.severity)
+            .find(|g| g.first().event == a.event && g.first().severity == a.severity)
         {
-            Some(g) => g.count += 1,
-            None => groups.push(AlertGroup { first: a, count: 1 }),
+            Some(g) => g.members.push(a),
+            None => groups.push(AlertGroup { members: vec![a] }),
         }
     }
     groups
@@ -228,6 +260,10 @@ pub struct Forecast {
     pub periods: Vec<ForecastPeriod>,
     pub hourly_periods: Vec<ForecastPeriod>,
     pub sun_times: Vec<DailySun>,
+    /// The location's offset east of UTC, from Open-Meteo `timezone=auto`.
+    /// Alert expiries are UTC instants and render in this rame so they
+    /// agree with the hourly strip and headline's own "until".
+    pub utc_offset_seconds: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -479,9 +515,9 @@ mod tests {
         let groups = group_alerts(&list);
         let rows: Vec<(&str, usize)> = groups
             .iter()
-            .map(|g| (g.first.event.as_str(), g.count))
+            .map(|g| (g.first().event.as_str(), g.count()))
             .collect();
         assert_eq!(rows, vec![("Heat", 2), ("Heat", 1), ("Wind", 1)]);
-        assert_eq!(groups[1].first.severity, AlertSeverity::Severe);
+        assert_eq!(groups[1].first().severity, AlertSeverity::Severe);
     }
 }

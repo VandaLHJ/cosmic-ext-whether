@@ -101,6 +101,7 @@ pub async fn fetch_weather(
             periods: daily_periods,
             hourly_periods,
             sun_times,
+            utc_offset_seconds: weather.utc_offset_seconds,
         },
         cached_grid,
         alerts,

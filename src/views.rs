@@ -333,21 +333,46 @@ impl AppModel {
                             .class(cosmic::theme::Text::Color(muted_color())),
                     );
                     for group in group_alerts(list) {
-                        let row = cosmic::iced::widget::row![
-                            alert_glyph(&group.first.severity),
-                            widget::text::body(group.first.event.clone()).width(Length::Fill),
-                            widget::text::caption(group.count.to_string())
+                        let expanded = self.expanded_alerts.contains(&group.key());
+                        let title = cosmic::iced::widget::row![
+                            widget::text::body(capitalize_first(&group.first().event))
+                                .width(Length::Fill),
+                            widget::text::caption(group.count().to_string())
                                 .class(cosmic::theme::Text::Color(muted_color())),
                         ]
                         .spacing(sp.space_xs)
-                        .align_y(Alignment::Center);
-                        alert_col = alert_col.push(row);
+                        .align_y(Alignment::Center)
+                        .width(Length::Fill);
+                        let mut text_col = cosmic::iced::widget::column![title]
+                            .spacing(sp.space_xxxs)
+                            .width(Length::Fill);
+                        if expanded {
+                            text_col = text_col.push(
+                                widget::text::caption(group.areas().join(", "))
+                                    .class(cosmic::theme::Text::Color(muted_color())),
+                            );
+                            text_col = text_col.push(
+                                widget::text::caption(self.expiry_label(group.latest_expires()))
+                                    .class(cosmic::theme::Text::Color(muted_color())),
+                            );
+                        }
+                        let row = cosmic::iced::widget::row![
+                            alert_glyph(&group.first().severity),
+                            text_col
+                        ]
+                        .spacing(sp.space_xs)
+                        .align_y(Alignment::Start);
+                        let row_btn = widget::button::custom(row)
+                            .on_press(Message::ToggleAlert(group.key()))
+                            .width(Length::Fill)
+                            .class(flat_toggle_button_style());
+                        alert_col = alert_col.push(row_btn);
                     }
                 }
                 _ => {
                     for alert in alerts {
                         let expanded = self.expanded_alerts.contains(&alert.key());
-                        let mut event = widget::text::body(alert.event.clone());
+                        let mut event = widget::text::body(capitalize_first(&alert.event));
                         if alert.severity == AlertSeverity::Extreme {
                             event = event.font(cosmic::font::bold());
                         }
@@ -355,6 +380,10 @@ impl AppModel {
                             cosmic::iced::widget::column![event].spacing(sp.space_xxxs);
                         if expanded {
                             text_col = text_col.push(widget::text::body(alert.headline.clone()));
+                            text_col = text_col.push(
+                                widget::text::caption(self.expiry_label(alert.expires))
+                                    .class(cosmic::theme::Text::Color(muted_color())),
+                            )
                         }
                         let row =
                             cosmic::iced::widget::row![alert_glyph(&alert.severity), text_col]
@@ -968,6 +997,27 @@ impl AppModel {
             .width(Length::Fixed(360.0))
             .into()
     }
+
+    fn expiry_label(&self, expires: chrono::DateTime<chrono::Utc>) -> String {
+        use chrono::{Datelike, FixedOffset};
+        // The location's clock, not the viewer's, so the line agrees with the
+        // hourly strip beside it. Falls back to the viewer's clock only if no
+        // forecast is loaded, which cannot happen while alerts render.
+        let offset = self
+            .forecast
+            .as_ref()
+            .and_then(|f| FixedOffset::east_opt(f.utc_offset_seconds))
+            .unwrap_or_else(|| *chrono::Local::now().offset());
+        let at = expires.with_timezone(&offset);
+        let today = chrono::Utc::now().with_timezone(&offset).date_naive();
+        let time = weathervane::format_time(&at.to_rfc3339(), self.military_time);
+        let when = if at.date_naive() == today {
+            time
+        } else {
+            format!("{} {}", weekday_label(at.weekday()), time)
+        };
+        fl!("alert-until", time = when)
+    }
 }
 
 fn forecast_icon_for_summary(day: &crate::types::DaySummary) -> &'static str {
@@ -1135,6 +1185,16 @@ fn alert_glyph<'a>(severity: &AlertSeverity) -> Element<'a, Message> {
             }
         })))
         .into()
+}
+
+/// MeteoAlarm events arrive as the feed wrote them ("wind gusts"); NWS
+/// events are title-cased. Lift the first letter so both read alike.
+fn capitalize_first(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) => c.to_uppercase().chain(chars).collect(),
+        None => String::new(),
+    }
 }
 
 fn uv_level(uv: f32) -> String {

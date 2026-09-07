@@ -12,7 +12,7 @@
   <description>
     <p>Whether is a weather applet for the COSMIC desktop panel, showing current conditions, hourly and 7-day forecasts, and air quality for locations worldwide, with weather alerts in supported regions.</p>
     <p xml:lang="pl">Whether jest apletem pogodowym panelu dla środowiska COSMIC, pokazującym obecne warunki pogodowe, godzinne i tygodniowe prognozy, jakość powietrza dla całego świata z ostrzeżeniami pogodowymi dla wspieranych regionów.</p>
-    <p>Weather data is sourced automatically by location via weathervane — Open-Meteo provides the worldwide base forecast, NWS overlays US current conditions and daily forecast detail, JMA provides local current temperatures in Japan.</p>
+    <p>Weather data is sourced automatically by location via weathervane - Open-Meteo provides the worldwide base forecast, NWS overlays US current conditions and daily forecast detail, JMA provides local current temperatures in Japan.</p>
     <p xml:lang="pl">Dane pogodowe są automatycznie sczytywane dla wybranego położenia przez weathervane - Open-Meteo zapewnia ogólnoświatowe prognozy, NWS nakłada obecne warunki i prognozy dla Stanów Zjednoczonych, a JMA mierzy temperatury dla Japonii.</p>
     <p>Features include:</p>
     <p xml:lang="pl">Funkcjonalności:</p>
@@ -23,7 +23,7 @@
       <li xml:lang="pl">Rozwijalne szczegóły: punkt rosy, ciśnienie i jakość powietrza (PM2.5, PM10, ozon)</li>
       <li>Hourly and 7-day forecasts, with per-day wind, precipitation, and sunrise/sunset</li>
       <li xml:lang="pl">Godzinowe i tygodniowe prognozy, z wyszczególnionym wiatrem, opadami i czasem wschodu i zachodu słońca</li>
-      <li>Weather alerts for the US, Europe, Canada, and Australia</li>
+      <li>Weather alerts for the US, Europe, Canada, and Australia, expandable to detailed reports in the US and Canada</li>
       <li xml:lang="pl">Ostrzeżenia pogodowe dla Stanów Zjednoczonych, Europy, Kanady i Australii</li>
       <li>Location search with multiple saved locations</li>
       <li xml:lang="pl">Wyszukiwanie położenia z możliwością zapisania wielu położeń</li>
@@ -61,14 +61,25 @@
   </categories>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/nwxnw/cosmic-ext-whether/master/screenshots/whether-languages-store.png</image>
-      <caption>Current conditions and forecast in English, Swedish, Polish, and Brazilian Portuguese</caption>
-      <caption xml:lang="pl">Obecne warunki oraz prognozy w językach: angielskim, szwedzkim, polskim i brazylijskim portugalskim</caption>
+      <image>https://raw.githubusercontent.com/nwxnw/cosmic-ext-whether/master/screenshots/whether-languages-store-v0.5.0.png</image>
+      <caption>Current conditions and forecast in Swedish, Polish, Brazilian Portuguese, and English</caption>
+      <caption xml:lang="pl">Obecne warunki oraz prognozy w językach: szwedzkim, polskim, brazylijskim portugalskim i angielskim</caption>
     </screenshot>
   </screenshots>
   <!-- Release notes are English-only. Do not add xml:lang translations here;
          translate <summary>, <description>, and screenshot <caption> instead. -->
   <releases>
+    <release version="0.5.0" date="2026-09-07">
+      <description>
+        <ul>
+          <li>Redesigned weather alerts: compact rows with a severity icon and tint, expandable to the headline, affected areas, and local expiry time</li>
+          <li>Full alert text (available in the US and Canada) opens in a side panel instead of filling the popup</li>
+          <li>Fixed alerts showing the wrong country's entire feed, or none at all, for many European locations</li>
+          <li>The popup no longer overlaps the panel</li>
+          <li>Updated Polish translation</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.4.0" date="2026-08-25">
       <description>
         <ul>

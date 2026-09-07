@@ -2,13 +2,14 @@
 
 A weather applet for the [COSMIC](https://github.com/pop-os/cosmic-epoch) desktop panel.
 
-![Whether in English, Swedish, Polish, and Brazilian Portuguese](screenshots/whether-languages.png)
+![Whether in Swedish, Polish, Brazilian Portuguese, and English](screenshots/whether-languages.png)
 
 ## Features
 
 - **Current conditions** - temperature, feels-like, humidity, wind & gusts, precipitation, AQI, and UV index
   - Click **More** for dew point, pressure, and the pollutant breakdown (PM2.5, PM10, ozone)
-- **Weather alerts** for the US, Europe, Canada, and Australia, shown inline when active
+- **Weather alerts** for the US, Europe, Canada, and Australia, shown inline with a severity icon and tint, expandable to the headline, affected areas, and local expiry time
+  - Detailed alert text (available in the US and Canada) opens in a side panel instead of filling the popup
 - **Hourly and 7-day forecasts** - click any day to expand its detailed forecast, wind, precipitation, and sunrise/sunset
 - **Automatic data sourcing by location** via [weathervane](https://github.com/crenshawdev/weathervane):
   - **Open-Meteo** - the worldwide base forecast, free ([CC BY 4.0](https://open-meteo.com/en/license))
@@ -30,7 +31,7 @@ To add a language, copy `i18n/en/cosmic_ext_whether.ftl` into a new locale direc
 
 Some of what you see comes from the weather service rather than from Whether, and appears in whatever language that agency publishes:
 
-- **Weather alert headlines** are written by the issuing agency (NWS, MeteoAlarm, ECCC, BOM) and keep its wording.
+- **Weather alert text** (event names, headlines, area names, and detailed reports) is written by the issuing agency (NWS, MeteoAlarm, ECCC, BOM) and keeps its wording.
 - **US daily forecast detail** ("Sunny, with a high near 82. North northwest wind 2 to 9 mph.") is authored by the National Weather Service and is English only.
 - **Condition descriptions** fall back to the provider's own wording when a report doesn't map to a known condition.
 
